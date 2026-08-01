@@ -1,11 +1,11 @@
-# AGENTS.md — Turnos y agenda
+# AGENTS.md — Informes clínicos
 
 ## 1. Alcance
 
 Estas instrucciones se aplican a:
 
 ```text
-api/src/modules/turnos/
+api/src/modules/informes/
 ```
 
 También deben respetarse al modificar piezas relacionadas ubicadas fuera del
@@ -15,11 +15,10 @@ módulo, especialmente:
 api/src/modules/vinculos/
 api/src/modules/pacientes/
 api/src/modules/usuarios/
-api/src/modules/servicios/
-api/src/modules/consultorios/
+api/src/modules/tipos-informe/
 api/src/modules/auditoria/
 api/src/shared/database/models/
-api/src/shared/utils/
+api/src/shared/permissions/
 api/migrations/
 api/tests/
 ```
@@ -27,7 +26,7 @@ api/tests/
 Este archivo complementa `api/AGENTS.md`; no reemplaza las reglas generales del
 backend ni las instrucciones especializadas de persistencia.
 
-Antes de modificar Turnos, consultar:
+Antes de modificar Informes, consultar:
 
 ```text
 api/AGENTS.md
@@ -38,27 +37,28 @@ docs/modelo-datos.md
 api/src/shared/database/AGENTS.md
 ```
 
-Si `docs/modelo-datos.md`, `api/AGENTS.md` o el `AGENTS.md` de base de datos
-todavía no existen en el checkout, no inventar su contenido. Utilizar únicamente
-las decisiones normativas disponibles y señalar el vacío.
+Si alguno de esos archivos todavía no existe en el checkout, no inventar su
+contenido. Aplicar únicamente las decisiones normativas disponibles y señalar
+el vacío.
 
 Precedencia:
 
 1. requerimientos y decisiones expresamente aprobadas;
 2. documentación normativa consolidada vigente;
-3. `docs/contrato-api.md` y `docs/matriz-permisos.md` vigentes;
+3. `docs/contrato-api.md`, `docs/matriz-permisos.md` y
+   `docs/modelo-datos.md` vigentes;
 4. este archivo especializado;
 5. `api/AGENTS.md`.
 
 Ante una contradicción, detener solo la parte afectada, documentar la
-inconsistencia y solicitar una decisión. No modificar documentación normativa
-para justificar una implementación incompatible.
+inconsistencia y solicitar una decisión. No cambiar la documentación normativa
+para encubrir una implementación incompatible.
 
 ---
 
 ## 2. Comandos habituales
 
-Ejecutar desde `api/` y comprobar primero que los scripts existan en
+Ejecutar desde `api/` y comprobar primero que cada script exista en
 `package.json`:
 
 ```bash
@@ -76,122 +76,134 @@ Reglas operativas:
 - crear el esquema de test mediante migraciones;
 - no utilizar `sequelize.sync()` ni SQLite;
 - no ejecutar pruebas contra development o production;
-- no asumir que un script existe solo porque aparece en esta lista;
-- no registrar datos personales, clínicos, observaciones o notas durante las
-  pruebas;
-- probar los tres antisolapamientos con solicitudes simultáneas reales;
-- informar los comandos ejecutados, sus resultados y cualquier validación no
-  realizada.
+- no usar pacientes, autores ni contenido clínico reales en fixtures;
+- no imprimir títulos, resúmenes, contenidos ni bodies durante las pruebas;
+- probar finalización y edición concurrentes con operaciones simultáneas reales;
+- informar comandos ejecutados, resultados y validaciones no realizadas;
+- no afirmar que la inmutabilidad está protegida en base de datos si solo fue
+  comprobada mediante el service.
 
 ---
 
 ## 3. Decisiones obligatorias del MVP
 
 ```text
-Zona funcional:             America/Argentina/Cordoba
-Persistencia de instantes:  UTC mediante TIMESTAMPTZ
-Días habilitados:           lunes a sábado
-Franja operativa:           08:00–21:00
-Duraciones:                 30, 45, 60, 90 o 120 minutos
-Estado inicial:             pendiente
-Estados bloqueantes:        pendiente, confirmado
-Estados terminales:         completado, cancelado, ausente
-Semántica de intervalo:     [inicio, fin)
-Alcance máximo de agenda:   31 días
-Reprogramación:             no existe
-Eliminación física:         no existe
+Estados:                 borrador, finalizado
+Estado inicial:          borrador
+Autor:                   actor autenticado
+Edición:                 solo autor activo y solo en borrador
+Finalización:            solo autor activo y solo en borrador
+Informe finalizado:      inmutable
+Eliminación:             no existe
+Reapertura:              no existe
+Transferencia de autor:  no existe
+PDF backend:             no existe
 ```
 
-PostgreSQL es la autoridad final para evitar solapamientos simultáneos de:
+Solo los roles `profesional` y `coordinacion` pueden crear informes.
 
-- prestador responsable;
-- paciente;
-- consultorio.
+- El profesional crea únicamente para pacientes con vínculo activo.
+- Coordinación crea para cualquier paciente activo.
+- El backend obtiene el autor del actor autenticado.
+- Administrador y secretaría pueden leer informes completos dentro de su
+  alcance global, pero no crear, editar ni finalizar.
+- Un rol global o jerárquicamente superior no hereda permisos de autoría.
 
-La comprobación previa de disponibilidad mejora el feedback, pero no reserva el
-horario ni garantiza integridad.
+Todo informe nuevo se crea como `borrador`, sin `fechaEmision`. Al finalizar:
 
-Un turno puede utilizar cualquier servicio activo. La asignación habitual de
-servicios al prestador es informativa y organizativa; no autoriza ni restringe
-la creación.
+1. cambia a `finalizado`;
+2. el backend asigna `fechaEmision`;
+3. se registra la auditoría correspondiente;
+4. el contenido queda inmutable.
 
-### Decisión contraintuitiva: servicio no asignado
+No existe eliminación física ni lógica de informes. La historia clínica debe
+conservarse.
 
-Documentos anteriores conservan la expresión “servicio activo y asignado”. Esa
-regla fue reemplazada por el contrato consolidado vigente:
+---
+
+## 4. Decisión contraintuitiva: lectura no equivale a autoría
+
+Algunas descripciones resumidas antiguas indican que el profesional accede a
+“informes propios”. La regla vigente distingue lectura y escritura:
 
 ```text
-El servicio solo debe existir y estar activo.
+Lectura profesional: todos los informes de pacientes con vínculo activo.
+Escritura: únicamente borradores creados por el propio autor.
 ```
 
 Por lo tanto:
 
-- no exigir una fila en `usuarios_servicios`;
-- no rechazar un servicio activo por no ser habitual;
-- no crear el error `SERVICIO_NO_ASIGNADO` en Turnos;
-- no filtrar el selector backend a servicios habituales;
-- se permite ordenar los habituales primero sin excluir los demás activos.
+- un profesional vinculado puede leer borradores y finalizados de otros
+  profesionales sobre ese paciente;
+- no puede editar ni finalizar esos informes;
+- coordinación puede leer globalmente, pero solo editar o finalizar los
+  borradores que ella misma creó;
+- administrador y secretaría no pueden modificar informes, aunque puedan leer
+  el contenido completo;
+- la UI no define el permiso: el backend debe verificar vínculo, autoría,
+  estado y actividad del autor en cada operación.
 
-No “restaurar” la regla anterior al modificar validaciones, services, pruebas o
-documentación.
+No restringir la lectura profesional a `autor_id = actor.id`. No ampliar la
+escritura por jerarquía de rol.
 
 ---
 
-## 4. Responsabilidad del módulo
+## 5. Responsabilidad del módulo
 
-`turnos` es dueño de:
+`informes` es dueño de:
 
-- consulta de agenda;
-- consulta orientativa de disponibilidad;
-- detalle autorizado del turno;
-- creación de turnos;
-- reglas de horario y duración;
-- transiciones de estado;
-- cancelación y liberación de horario;
-- observación administrativa;
-- notas internas del turno;
-- coordinación transaccional del vínculo automático;
-- detección y traducción de conflictos temporales;
-- proyecciones de evento y detalle;
-- auditoría funcional propia del turno.
+- listado autorizado de informes;
+- detalle clínico autorizado;
+- creación de borradores;
+- edición de borradores propios;
+- finalización e inmutabilidad funcional;
+- cálculo de capacidades de edición y finalización;
+- aplicación de scopes por rol, vínculo, recurso y autoría;
+- selección de proyecciones resumidas y completas;
+- coordinación transaccional de la finalización;
+- traducción de errores propios del dominio;
+- eventos de auditoría del ciclo de vida y de visualización.
 
 Estructura orientativa, sin crear archivos vacíos:
 
 ```text
-src/modules/turnos/
-├── turno.routes.js
-├── turno.validation.js
-├── turno.controller.js
-├── turno.service.js
-├── turno.policy.js
-├── turno.projection.js
-├── turno.constants.js
+src/modules/informes/
+├── informe.routes.js
+├── informe.validation.js
+├── informe.controller.js
+├── informe.service.js
+├── informe.policy.js
+├── informe.projection.js
+├── informe.constants.js
 └── AGENTS.md
 ```
 
 Los modelos Sequelize permanecen centralizados en
-`src/shared/database/models/`. El módulo Turnos no define un modelo paralelo ni
-un Repository genérico.
+`src/shared/database/models/`. Informes no define modelos paralelos ni un
+Repository genérico.
 
 ---
 
-## 5. Responsabilidades por capa
+## 6. Responsabilidades por capa
 
 ### Routes
 
 - declaran método y ruta;
-- componen autenticación, permiso general, Joi y controller;
+- componen autenticación, permiso general, validación Joi y controller;
 - mantienen visible el orden de middlewares;
-- no consultan modelos ni deciden acceso al turno concreto.
+- no consultan modelos;
+- no deciden acceso a un informe concreto;
+- no implementan autoría mediante condiciones ad hoc.
 
 ### Validation
 
 - valida `params`, `query` y `body`;
-- limita UUID, enums, fechas, horas, duraciones, paginación y ordenamiento;
+- limita UUID, strings, enums, paginación, filtros y ordenamiento;
 - rechaza propiedades inesperadas;
-- respeta nulabilidad contractual;
+- diferencia campos requeridos al crear y permitidos al editar;
 - no consulta PostgreSQL;
-- no resuelve vínculos, estados persistidos ni solapamientos.
+- no determina si paciente, autor o tipo están activos;
+- no resuelve vínculos ni permisos por recurso.
 
 ### Controllers
 
@@ -200,62 +212,40 @@ un Repository genérico.
 - invocan un caso de uso del service;
 - devuelven status y envelope contractuales;
 - no abren transacciones;
-- no aplican reglas por rol o recurso;
+- no aplican reglas clínicas, de vínculo o autoría;
 - no serializan instancias Sequelize completas.
 
 ### Services
 
-- aplican negocio y policies por recurso;
-- cargan recursos activos y autorizados;
-- convierten fecha y hora local a instantes;
-- calculan `finAt` en backend;
+- cargan el informe y sus relaciones mediante atributos explícitos;
+- aplican reglas de negocio y policies por recurso;
+- verifican actividad de paciente, autor y tipo cuando corresponda;
 - abren y propagan transacciones;
-- coordinan vínculo, turno y auditoría;
-- traducen errores de PostgreSQL a códigos funcionales;
+- preservan la precondición de estado ante concurrencia;
+- asignan autor, estado, timestamps y `fechaEmision` en backend;
 - seleccionan la proyección autorizada;
+- coordinan auditoría sin copiar contenido clínico;
+- traducen errores internos a códigos funcionales;
 - no reciben `req`, `res` ni status HTTP.
 
 ### Policies
 
 - distinguen permiso general, alcance de filas, recurso concreto y campo;
-- verifican si el profesional es el prestador responsable;
+- verifican alcance global o vínculo activo;
+- verifican autoría para editar y finalizar;
+- verifican estado y actividad del autor;
 - protegen acceso directo por UUID contra IDOR;
-- deciden lectura y escritura de notas internas;
 - no se sustituyen con controles del frontend.
 
 ### Proyecciones
 
 - utilizan listas positivas de atributos;
-- separan evento de agenda y detalle;
-- omiten campos no autorizados en la consulta, no solo en el JSON final;
+- separan listado y detalle;
+- omiten contenido clínico desde la consulta cuando no corresponde;
+- calculan capacidades en backend;
 - no utilizan `model.toJSON()` como respuesta;
-- evitan includes globales y ciclos de serialización.
-
----
-
-## 6. Terminología y nombres contractuales
-
-El prestador responsable puede tener rol:
-
-```text
-profesional
-coordinacion
-```
-
-El administrador y la secretaría operan agendas, pero no son prestadores.
-
-La API v1 conserva estos nombres diferentes:
-
-| Contexto | Nombre | Significado |
-|---|---|---|
-| Crear turno | `profesionalId` | Prestador responsable. |
-| Filtro y disponibilidad | `prestadorId` | Prestador consultado. |
-| PostgreSQL | `profesional_id` | FK al usuario prestador. |
-| Respuesta | `prestador` | Proyección del responsable. |
-
-No renombrar unilateralmente `profesionalId` en el body de creación ni agregar
-aliases alternativos. Un cambio de nombre exige versionado o actualización
-contractual explícita.
+- no utilizan `include: { all: true }`;
+- evitan ciclos y asociaciones no autorizadas.
 
 ---
 
@@ -263,959 +253,963 @@ contractual explícita.
 
 | Método | Ruta | Acceso resumido |
 |---|---|---|
-| `GET` | `/api/v1/turnos` | Todos; scope global o propio. |
-| `GET` | `/api/v1/turnos/disponibilidad` | Cualquier autenticado. |
-| `GET` | `/api/v1/turnos/:id` | Roles globales o responsable. |
-| `POST` | `/api/v1/turnos` | Admin, coordinación, secretaría, profesional. |
-| `PATCH` | `/api/v1/turnos/:id/confirmar` | Roles globales o responsable. |
-| `PATCH` | `/api/v1/turnos/:id/cancelar` | Roles globales o responsable. |
-| `PATCH` | `/api/v1/turnos/:id/completar` | Roles globales o responsable. |
-| `PATCH` | `/api/v1/turnos/:id/ausente` | Roles globales o responsable. |
-| `PATCH` | `/api/v1/turnos/:id/observacion-administrativa` | Roles globales o responsable. |
-| `PATCH` | `/api/v1/turnos/:id/notas-internas` | Coordinación o responsable. |
+| `GET` | `/api/v1/informes` | Roles autenticados con scope global o vinculado. |
+| `GET` | `/api/v1/informes/:id` | Roles globales o profesional vinculado. |
+| `POST` | `/api/v1/informes` | Profesional vinculado o coordinación. |
+| `PUT` | `/api/v1/informes/:id` | Autor activo de su borrador. |
+| `PATCH` | `/api/v1/informes/:id/finalizar` | Autor activo de su borrador. |
 
-No incorporar rutas alternativas, aliases ni endpoints genéricos.
+No incorporar aliases, rutas genéricas ni endpoints alternativos.
 
 En particular, no existen:
 
 ```text
-PUT    /api/v1/turnos/:id
-PATCH  /api/v1/turnos/:id/reprogramar
-DELETE /api/v1/turnos/:id
+DELETE /api/v1/informes/:id
+PATCH  /api/v1/informes/:id/reabrir
+PATCH  /api/v1/informes/:id/cambiar-autor
+PATCH  /api/v1/informes/:id/restaurar
+GET    /api/v1/informes/:id/pdf
 ```
 
-El endpoint vigente de ausencia es:
-
-```text
-PATCH /api/v1/turnos/:id/ausente
-```
-
-No utilizar la variante heredada `/marcar-ausente`.
+La impresión se resuelve en el frontend a partir de la proyección autorizada.
+No agregar generación, almacenamiento ni descarga de PDF en el backend sin una
+decisión nueva.
 
 ---
 
-## 8. Fechas, horarios e intervalos
+## 8. Modelo funcional mínimo
 
-La fecha civil y la hora recibidas al crear se interpretan en:
+La representación exacta de tabla, columnas, constraints y asociaciones
+proviene de `docs/modelo-datos.md` y de las migraciones vigentes.
 
-```text
-America/Argentina/Cordoba
-```
-
-Reglas:
-
-- persistir `inicio_at` y `fin_at` como `TIMESTAMPTZ`;
-- tratar los instantes persistidos como UTC;
-- devolverlos en ISO 8601 UTC;
-- centralizar la conversión en una utilidad testeada;
-- no usar la zona local del servidor como regla del negocio;
-- no concatenar manualmente strings de fecha y hora;
-- recalcular `finAt` en backend desde inicio y duración;
-- no aceptar `inicioAt` o `finAt` elegidos directamente por el cliente al crear;
-- rechazar un comienzo o intervalo pasado según la semántica contractual;
-- admitir solo lunes a sábado;
-- exigir inicio igual o posterior a las 08:00;
-- exigir fin igual o anterior a las 21:00;
-- admitir únicamente 30, 45, 60, 90 o 120 minutos.
-
-Los rangos usan inicio inclusivo y fin exclusivo:
+Semánticamente, un informe necesita:
 
 ```text
-[inicio, fin)
-```
-
-Por lo tanto, son válidos dos turnos consecutivos cuando el primero termina
-exactamente al comenzar el segundo.
-
-No agregar por intuición:
-
-- tolerancias de llegada;
-- intervalos de descanso;
-- redondeo obligatorio de inicio;
-- horarios propios por prestador;
-- feriados automáticos;
-- excepciones de agenda.
-
----
-
-## 9. Consulta de agenda
-
-`GET /turnos` aplica el siguiente alcance:
-
-- administrador, coordinación y secretaría: global;
-- profesional: únicamente `profesional_id = actor.id`.
-
-Filtros permitidos:
-
-```text
-desde
-hasta
-prestadorId
-pacienteId
-consultorioId
-servicioId
+paciente
+autor
+tipo de informe
+título
+resumen
+contenido
 estado
-page
-limit
-sort
-order
+fecha de creación
+fecha de actualización
+fecha de emisión, solo al finalizar
 ```
 
-Reglas:
+Invariantes obligatorias:
 
-- `desde` es inclusivo;
-- `hasta` es exclusivo;
-- para agenda visual deben enviarse juntos;
-- el rango visual no supera 31 días;
-- fechas civiles se interpretan en la zona del centro;
-- default de paginación: página 1 y límite 20;
-- límite máximo: 100;
-- `sort` solo admite `inicioAt`, `estado` o `createdAt`;
-- el orden inicial de agenda es `inicioAt asc`;
-- un profesional no puede ampliar su scope con `prestadorId`;
-- los filtros fuera de scope se rechazan conforme al contrato con
-  `FORBIDDEN_FILTER`; no deben ignorarse silenciosamente si eso contradice la
-  especificación vigente;
-- todas las listas se construyen con columnas e includes explícitos.
+- `estado` solo admite `borrador` o `finalizado`;
+- `borrador` implica `fecha_emision IS NULL`;
+- `finalizado` implica `fecha_emision IS NOT NULL`;
+- paciente, autor y tipo no pueden apuntar a registros inexistentes;
+- un informe no se elimina cuando se desactiva un recurso relacionado;
+- la baja lógica de paciente, autor o tipo no altera la historia del informe;
+- los tipos de claves foráneas deben coincidir con sus claves referenciadas.
 
-La agenda consulta solo el intervalo solicitado. No cargar todo el historial
-para filtrar en memoria.
-
-### Proyección de evento
-
-El listado contiene solamente:
-
-- `id`;
-- `inicioAt`, `finAt`, `duracionMinutos`;
-- `estado`;
-- paciente con `id` y `nombreCompleto`;
-- prestador con `id` y `nombreCompleto`;
-- servicio con `id` y `nombre`;
-- consultorio con `id` y `nombre`.
-
-El listado nunca contiene:
-
-- `observacionAdministrativa`;
-- `notasInternas`;
-- autoría de creación;
-- cancelación;
-- timestamps de sistema.
+No inventar nombres de tabla, columnas o constraints si todavía no están
+definidos normativamente.
 
 ---
 
-## 10. Disponibilidad orientativa
-
-`GET /turnos/disponibilidad` requiere:
-
-- `fecha`;
-- `duracionMinutos`;
-- al menos uno entre `prestadorId` y `consultorioId`.
-
-Puede recibir ambos identificadores. La disponibilidad:
-
-- respeta lunes a sábado y la franja 08:00–21:00;
-- considera los estados bloqueantes vigentes;
-- devuelve intervalos locales legibles;
-- no crea reservas temporales;
-- no abre una transacción de creación;
-- no garantiza que el paciente esté disponible;
-- no reemplaza la comprobación completa de `POST /turnos`;
-- puede quedar obsoleta inmediatamente por otra solicitud.
-
-Si se proporcionan prestador y consultorio, no inventar precedencia ni semántica
-de combinación mientras no esté documentada. Tampoco inventar la granularidad
-de comienzos disponibles. La duración admitida no define por sí sola saltos de
-15, 30 o 60 minutos.
-
----
-
-## 11. Creación de turnos
+## 9. Creación
 
 ### Entrada
+
+El body contractual contiene únicamente los campos editables de creación:
 
 ```json
 {
   "pacienteId": "uuid",
-  "profesionalId": "uuid",
-  "servicioId": "uuid",
-  "consultorioId": "uuid",
-  "fecha": "2026-08-01",
-  "horaInicio": "10:30",
-  "duracionMinutos": 60,
-  "observacionAdministrativa": "Traer documentación.",
-  "notasInternas": null
+  "tipoInformeId": "uuid",
+  "titulo": "Informe de seguimiento",
+  "resumen": "Síntesis clínica autorizada",
+  "contenido": "Contenido completo del informe"
 }
 ```
 
-El cliente no puede enviar:
+No aceptar desde el cliente:
 
-- `id`;
-- `estado`;
-- `inicioAt` o `finAt`;
-- actores de creación o cancelación;
-- timestamps;
-- nombres o proyecciones anidadas.
-
-El estado inicial siempre es `pendiente`.
+```text
+autorId
+estado
+fechaEmision
+createdAt
+updatedAt
+puedeEditar
+puedeFinalizar
+```
 
 ### Validaciones de negocio
 
-Aplicar, sin depender únicamente de su orden:
+El service debe comprobar:
 
-1. actor autorizado;
-2. paciente existente y activo;
-3. prestador existente, activo y con rol `profesional` o `coordinacion`;
-4. servicio existente y activo;
-5. consultorio existente y activo;
-6. fecha y hora no pasadas;
-7. día entre lunes y sábado;
-8. intervalo dentro de 08:00–21:00;
-9. duración permitida;
-10. policy del vínculo prestador-paciente;
-11. permiso de escritura por campo;
-12. ausencia orientativa de solapamientos;
-13. escritura final protegida por PostgreSQL.
+- actor con rol `profesional` o `coordinacion`;
+- actor activo;
+- paciente existente y activo;
+- tipo de informe existente y activo;
+- vínculo activo entre profesional y paciente cuando el actor es profesional;
+- presencia y validez de título, resumen y contenido;
+- campos permitidos según el contrato.
 
-No confiar en el UUID para autorizar ni revelar si un recurso ajeno existe
-cuando el criterio contractual exige ocultarlo.
+El backend asigna:
 
-### Reglas del actor
+```text
+autor_id       = actor.id
+estado         = borrador
+fecha_emision  = NULL
+timestamps     = valores del servidor
+```
 
-#### Profesional
+No permitir que coordinación elija otro autor. Si coordinación crea el
+informe, coordinación es la autora.
 
-- solo crea un turno propio;
-- `profesionalId` debe ser `actor.id`;
-- necesita vínculo activo previo con el paciente;
-- no puede crear automáticamente ese vínculo desde Turnos;
-- puede elegir cualquier servicio activo;
-- puede escribir `notasInternas` únicamente en su propio turno.
-
-#### Coordinación
-
-- puede crear turnos propios o ajenos;
-- puede actuar como prestador;
-- crea automáticamente el vínculo si falta;
-- puede escribir `notasInternas`.
-
-#### Administrador y secretaría
-
-- crean para cualquier prestador activo;
-- no se asignan a sí mismos como prestadores;
-- crean automáticamente el vínculo si falta;
-- no pueden escribir `notasInternas`, ni siquiera en un turno ajeno que
-  administran.
-
-Si un actor sin permiso envía `notasInternas`, incluso explícitamente como
-`null`, no eliminar silenciosamente el campo. Aplicar
-`TURNO_NOTAS_INTERNAS_DENEGADAS` conforme al contrato y sus schemas vigentes.
+No crear automáticamente vínculos desde Informes. La ausencia de vínculo del
+profesional es un error funcional; no es una invitación a ampliar permisos.
 
 ---
 
-## 12. Vínculo prestador-paciente
+## 10. Acceso clínico por rol
 
-El vínculo automático es parte del caso de uso de creación del turno.
+| Rol | Listado | Detalle completo | Crear | Editar | Finalizar |
+|---|---|---|---|---|---|
+| `administrador` | Global | Global | No | No | No |
+| `coordinacion` | Global | Global | Sí, autor propio | Solo borrador propio | Solo borrador propio |
+| `secretaria` | Global | Global | No | No | No |
+| `profesional` | Pacientes vinculados | Pacientes vinculados | Sí, con vínculo | Solo borrador propio | Solo borrador propio |
+
+“Global” significa alcance de filas autorizado, no permiso irrestricto sobre
+campos o acciones.
+
+No existe acceso para pacientes, tutores ni usuarios públicos en el MVP.
+
+Las comprobaciones deben aplicarse también cuando el recurso se solicita por
+UUID. Ocultar un botón o filtrar la navegación no protege contra IDOR.
+
+---
+
+## 11. Vínculo profesional-paciente
+
+Para un actor con rol `profesional`, el vínculo activo condiciona:
+
+- aparición del informe en listados;
+- lectura del detalle;
+- creación de un nuevo informe para el paciente.
+
+El vínculo se verifica en backend contra la relación vigente. No confiar en:
+
+- paciente enviado por el frontend;
+- autoría del informe;
+- acceso previo a otro recurso del paciente;
+- `permissions` contenidas en el JWT;
+- filtros visuales de la interfaz.
+
+La documentación todavía no define si un autor conserva lectura, edición o
+finalización de un borrador después de cerrarse su vínculo. Hasta que exista una
+decisión explícita:
+
+- no conceder acceso por autoría como excepción implícita;
+- no borrar ni transferir el borrador;
+- no afirmar que queda definitivamente editable o bloqueado;
+- detener cualquier implementación que deba resolver ese caso y solicitar una
+  decisión.
+
+---
+
+## 12. Listado y filtros
+
+`GET /informes` debe aplicar el scope antes de paginar:
+
+- administrador, coordinación y secretaría: alcance global;
+- profesional: pacientes con vínculo activo.
+
+Filtros funcionales previstos:
+
+```text
+search
+estado
+pacienteId
+autorId
+tipoInformeId
+page
+limit
+sort
+```
+
+La búsqueda prevista cubre título y paciente según el contrato. No ampliar por
+intuición la búsqueda a `resumen` o `contenido`.
 
 Reglas:
 
-- profesional: exige vínculo activo ya existente;
-- administrador, coordinación y secretaría: crean el vínculo si falta;
-- no duplicar un vínculo activo;
-- no reactivar ni sobrescribir historial sin la regla aprobada del módulo
-  Vínculos;
-- el vínculo creado automáticamente no expira al completar o cancelar el turno;
-- vínculo, turno y auditoría utilizan la misma transacción;
-- si el turno falla por cualquier motivo, el vínculo nuevo también se revierte;
-- registrar `PRESTADOR_VINCULADO_AUTOMATICAMENTE` sin datos sensibles cuando se
-  crea el vínculo.
+- validar listas blancas de filtros y ordenamiento;
+- aplicar límites máximos del contrato;
+- no aceptar nombres de columnas libres;
+- parametrizar cualquier SQL literal;
+- evitar N+1 al proyectar paciente, tipo y autor;
+- no cargar `resumen` ni `contenido` para construir el listado;
+- mantener orden estable cuando la paginación lo requiera;
+- no usar filtros para ampliar el scope del actor.
 
-Turnos debe coordinar una función pública y acotada de Vínculos. No duplicar su
-lógica interna ni importar sus controllers.
+La sintaxis exacta de paginación, búsqueda y ordenamiento proviene de
+`docs/contrato-api.md`. No inventar defaults o máximos ausentes.
 
 ---
 
-## 13. Estados y transiciones
+## 13. Proyección de listado
 
-Estados válidos:
-
-```text
-pendiente
-confirmado
-completado
-cancelado
-ausente
-```
-
-Transiciones permitidas:
+El listado devuelve únicamente la información necesaria para identificar y
+operar el recurso:
 
 ```text
-pendiente  → confirmado
-pendiente  → cancelado
-confirmado → completado
-confirmado → ausente
-confirmado → cancelado
+id
+titulo
+paciente resumido
+tipo de informe resumido
+autor resumido
+fechaCreacion
+fechaEmision
+estado
+acciones o capacidades contractuales
 ```
 
-Todo lo demás produce:
+El listado no devuelve:
 
 ```text
-409 TURNO_TRANSICION_INVALIDA
+resumen
+contenido
+objetos completos de paciente
+datos de contacto del paciente o tutor
+metadatos internos de Sequelize
+campos de auditoría
 ```
+
+La omisión debe realizarse mediante selección positiva de atributos. No cargar
+contenido clínico para descartarlo después de serializar.
+
+---
+
+## 14. Detalle y capacidades
+
+`GET /informes/:id` devuelve la proyección clínica completa solo después de
+resolver el acceso al recurso concreto.
+
+Puede incluir, según el contrato:
+
+```text
+id
+paciente
+tipoInforme
+autor
+titulo
+resumen
+contenido
+estado
+fechaCreacion
+fechaActualizacion
+fechaEmision
+puedeEditar
+puedeFinalizar
+```
+
+`puedeEditar` y `puedeFinalizar` son valores calculados por el backend. Nunca se
+persisten ni se aceptan desde el cliente.
+
+Ambos son verdaderos solamente cuando se cumplen simultáneamente las reglas
+vigentes:
+
+- actor autorizado para escritura;
+- actor es el autor;
+- autor activo;
+- informe en estado `borrador`;
+- cualquier otra precondición normativa vigente.
+
+El detalle exitoso debe generar el evento de auditoría
+`INFORME_VISUALIZADO` sin incluir contenido clínico.
+
+---
+
+## 15. Edición de borradores
+
+`PUT /informes/:id` permite modificar únicamente:
+
+```text
+tipoInformeId
+titulo
+resumen
+contenido
+```
+
+No permite modificar:
+
+```text
+pacienteId
+autorId
+estado
+fechaEmision
+createdAt
+updatedAt
+```
+
+Precondiciones obligatorias:
+
+- el informe existe dentro del scope del actor;
+- el actor es el autor;
+- el autor continúa activo;
+- el estado actual es `borrador`;
+- el nuevo tipo de informe, si cambia, existe y está activo;
+- el body contiene únicamente campos permitidos.
+
+El profesional no puede convertir una edición en un cambio de paciente para
+evitar la comprobación de vínculo. Coordinación tampoco puede reasignar un
+informe propio a otro paciente mediante `PUT`.
+
+No existe autosave obligatorio en el backend. Guardar varias veces un borrador
+es válido, pero cada escritura debe respetar las precondiciones actuales.
+
+---
+
+## 16. Finalización
+
+`PATCH /informes/:id/finalizar` realiza una transición única:
+
+```text
+borrador -> finalizado
+```
+
+No recibe del cliente:
+
+- nuevo estado;
+- fecha de emisión;
+- autor;
+- contenido reemplazado;
+- motivo de finalización inventado.
+
+La operación debe:
+
+1. abrir una transacción;
+2. cargar o afectar el informe preservando la precondición `borrador`;
+3. comprobar autoría y actividad del autor;
+4. asignar `estado = finalizado`;
+5. asignar `fecha_emision` con un instante del backend;
+6. registrar la auditoría de finalización en la misma transacción;
+7. confirmar solo si todas las escrituras tienen éxito.
+
+Si falla el cambio o su auditoría transaccional, no debe quedar un informe
+finalizado parcialmente.
+
+Una segunda finalización no es un éxito silencioso salvo que el contrato lo
+establezca expresamente. Traducir el conflicto de estado mediante el código
+funcional vigente.
+
+---
+
+## 17. Inmutabilidad
+
+Después de finalizar, el informe no puede:
+
+- editar título, resumen o contenido;
+- cambiar tipo de informe;
+- cambiar paciente;
+- cambiar autor;
+- volver a borrador;
+- finalizarse nuevamente como si fuera una nueva transición;
+- eliminarse física o lógicamente;
+- sobrescribirse mediante una ruta administrativa genérica.
+
+La inmutabilidad se aplica a todos los roles, incluidos administrador,
+coordinación y el autor original.
+
+No agregar una excepción de “superadministrador”. Una corrección clínica
+posterior requiere una decisión de dominio y un flujo explícito; no debe
+resolverse alterando el informe finalizado.
+
+Los constraints conocidos garantizan coherencia entre `estado` y
+`fecha_emision`, pero no necesariamente impiden cambiar cada campo clínico de
+una fila finalizada. No afirmar protección total en PostgreSQL sin inspeccionar
+el esquema y probarla directamente.
+
+Existe una recomendación previa de evaluar un trigger de inmutabilidad antes de
+producción. No está aprobado como requisito actual. No agregarlo, modificarlo ni
+eliminarlo por intuición.
+
+---
+
+## 18. Recursos inactivos e historia
+
+### Autor inactivo
+
+- no puede crear nuevos informes;
+- no puede editar ni finalizar borradores;
+- sus borradores no se transfieren a otro usuario;
+- sus informes finalizados continúan legibles según el scope del lector;
+- no reemplazar sus datos históricos por un autor ficticio.
+
+### Paciente inactivo
+
+- no admite nuevos informes;
+- sus informes existentes no se eliminan;
+- los finalizados permanecen como historia según permisos;
+- no está definido si un borrador existente puede editarse o finalizarse.
+
+### Tipo de informe inactivo
+
+- no puede seleccionarse al crear;
+- no puede seleccionarse como nuevo valor al editar;
+- los informes históricos que ya lo referencian conservan la relación;
+- no está definido si un borrador que ya usa ese tipo puede finalizarse sin
+  reemplazarlo.
+
+No convertir silenciosamente estas decisiones pendientes en borrados,
+reasignaciones, `SET NULL` o excepciones de permiso.
+
+---
+
+## 19. Auditoría
+
+Auditar como mínimo las acciones definidas por el contrato para:
+
+- creación;
+- edición;
+- finalización;
+- visualización del detalle.
+
+El evento de lectura clínica vigente es:
+
+```text
+INFORME_VISUALIZADO
+```
+
+Para los demás eventos, usar los nombres canónicos definidos en el catálogo de
+auditoría. No crear variantes de strings en distintos services.
+
+Una auditoría puede registrar metadatos mínimos, por ejemplo:
+
+```text
+actorId
+acción
+recursoTipo
+recursoId
+timestamp
+resultado permitido por la política de auditoría
+```
+
+Nunca registrar en auditoría:
+
+```text
+titulo
+resumen
+contenido
+body HTTP completo
+respuesta clínica
+datos de contacto
+tokens o cookies
+SQL o parámetros
+```
+
+La auditoría de finalización comparte la transacción porque forma parte de la
+operación. La política ante un fallo al auditar una lectura exitosa todavía no
+está definida. No decidir por intuición si se entrega o se bloquea el contenido;
+detener esa parte y solicitar una decisión.
+
+---
+
+## 20. Transacciones
+
+La finalización siempre es transaccional.
+
+La creación o edición también debe usar transacción cuando incluya varias
+escrituras que constituyan una sola operación funcional, por ejemplo auditoría
+atómica exigida por la documentación vigente.
 
 Reglas:
 
-- el estado no se edita directamente;
-- cada transición posee un endpoint específico;
-- `completado`, `cancelado` y `ausente` son terminales;
-- una transición terminal no se revierte;
-- completar o marcar ausente exige que `inicioAt` ya haya ocurrido;
-- confirmar no cambia el intervalo ni crea un nuevo turno;
-- confirmar conserva el bloqueo de agenda;
-- cancelar libera el intervalo porque el estado deja de participar en la
-  exclusión temporal.
-
-### Cancelación
-
-Cancelar exige:
-
-- estado actual `pendiente` o `confirmado`;
-- motivo no vacío dentro del límite contractual;
-- actor autenticado;
-- instante automático;
-- auditoría en la misma operación.
-
-Persistir de forma coherente:
-
-```text
-estado = cancelado
-cancelado_at
-cancelado_por
-motivo_cancelacion
-```
-
-No eliminar el turno cancelado ni borrar sus relaciones históricas.
-
----
-
-## 14. Sin edición estructural ni reprogramación
-
-No se modifican después de crear:
-
-- paciente;
-- prestador;
-- servicio;
-- consultorio;
-- fecha;
-- hora;
-- duración;
-- `inicioAt`;
-- `finAt`.
-
-Para cambiar cualquiera de esos datos:
-
-1. cancelar el turno original con motivo;
-2. crear un turno nuevo con otro UUID;
-3. conservar ambos historiales;
-4. auditar ambas operaciones.
-
-No agregar `turnoOrigenId`, endpoint genérico, drag-and-drop, resize ni una
-actualización directa como solución incidental. La correlación explícita entre
-turnos no forma parte del MVP.
-
----
-
-## 15. Observación administrativa y notas internas
-
-### Observación administrativa
-
-Puede verla y editarla:
-
-- administrador;
-- coordinación;
-- secretaría;
-- prestador responsable.
-
-Solo se modifica mediante el endpoint específico y mientras el turno no sea
-terminal. Puede establecerse en `null`.
-
-### Notas internas
-
-Puede verlas y editarlas únicamente:
-
-- coordinación;
-- prestador responsable.
-
-Reglas:
-
-- nunca aparecen en listados;
-- se omiten por completo para administrador y secretaría;
-- no enviarlas como `null` a un actor no autorizado;
-- no seleccionarlas desde PostgreSQL si la proyección no las permite;
-- no incluirlas en logs, auditoría, JWT, métricas ni mensajes de error;
-- no permitir que un profesional lea o modifique notas de un turno ajeno;
-- solo se modifican mientras el turno no sea terminal.
-
-Los cambios se auditan mediante el tipo de evento, no copiando el contenido.
-
----
-
-## 16. Permisos por acción, fila y campo
-
-| Acción | Administrador | Coordinación | Secretaría | Profesional |
-|---|:---:|:---:|:---:|:---:|
-| Consultar agenda | Global | Global | Global | Propia |
-| Consultar disponibilidad | Global | Global | Global | Global |
-| Ver detalle | Global | Global | Global | Propio |
-| Crear para cualquier prestador | Sí | Sí | Sí | No |
-| Crear turno propio | N/A | Sí | N/A | Sí |
-| Confirmar | Global | Global | Global | Propio |
-| Cancelar | Global | Global | Global | Propio |
-| Completar | Global | Global | Global | Propio |
-| Marcar ausente | Global | Global | Global | Propio |
-| Editar observación | Global | Global | Global | Propio |
-| Leer/editar notas internas | No | Global | No | Propio |
-
-“Global” no elimina la policy del recurso ni la proyección de campos.
-
-Un permiso general como `appointments.manageOwn` no demuestra que el turno
-consultado pertenezca al actor. El service debe verificar el recurso concreto.
-
-Filtros, includes, ordenamiento y acceso directo por UUID deben conservar el
-mismo scope. No cargar el recurso sin scope para decidir luego en el controller.
-
----
-
-## 17. Proyección de detalle
-
-El detalle autorizado agrega a la proyección de evento:
-
-- `observacionAdministrativa`;
-- `notasInternas` solo cuando corresponde;
-- `creadoPor` con proyección mínima;
-- `cancelacion` cuando corresponde;
-- `createdAt`;
-- `updatedAt`.
-
-La cancelación expone únicamente:
-
-- motivo;
-- `canceladoAt`;
-- `canceladoPor` con proyección mínima.
-
-No incluir ficha clínica, diagnóstico, observaciones del paciente, datos de
-contacto del tutor, DNI, email ni teléfono dentro del evento o detalle del
-turno. Si la interfaz necesita la ficha, debe consultar el recurso Paciente con
-su policy propia.
-
----
-
-## 18. Integridad temporal en PostgreSQL
-
-Los estados bloqueantes son:
-
-```text
-pendiente
-confirmado
-```
-
-Los estados que no bloquean son:
-
-```text
-completado
-cancelado
-ausente
-```
-
-La base debe impedir intervalos superpuestos `[inicio_at, fin_at)` para el mismo:
-
-- `profesional_id`;
-- `paciente_id`;
-- `consultorio_id`.
-
-Utilizar constraints de exclusión PostgreSQL con el mecanismo y extensiones
-aprobados por el modelo de datos y las migraciones vigentes.
-
-Además, PostgreSQL debe sostener al menos:
-
-- estado válido;
-- duración permitida;
-- `fin_at > inicio_at`;
-- coherencia entre fin, inicio y duración;
-- integridad de claves foráneas;
-- coherencia de los campos de cancelación.
-
-No:
-
-- reemplazar exclusiones con consultas previas;
-- eliminar constraints para hacer pasar pruebas;
-- utilizar locks globales como sustituto automático;
-- usar `constraints: false`;
-- permitir que hooks oculten la transición;
-- suponer que una transacción sola evita el solapamiento.
-
-Los nombres y expresiones exactos deben coincidir con migraciones y
-`modelo-datos.md`. No inventarlos si esos archivos aún no los definen.
-
----
-
-## 19. Concurrencia al crear
-
-Flujo obligatorio:
-
-1. validar forma y permisos;
-2. comprobar recursos y disponibilidad para ofrecer errores claros;
-3. abrir la transacción del caso de uso;
-4. crear el vínculo automático cuando corresponda;
-5. intentar insertar el turno;
-6. dejar que PostgreSQL aplique las exclusiones;
-7. registrar auditoría dentro de la misma transacción;
-8. confirmar todo o revertir todo;
-9. traducir el conflicto conocido a `409`.
-
-Conflictos contractuales:
-
-```text
-TURNO_CONFLICTO_PROFESIONAL
-TURNO_CONFLICTO_PACIENTE
-TURNO_CONFLICTO_CONSULTORIO
-```
-
-La clasificación interna puede utilizar el código PostgreSQL y un nombre de
-constraint controlado. Nunca devolver al cliente:
-
-- nombre del constraint;
-- SQL;
-- tabla o columnas;
-- parámetros;
-- mensaje crudo de Sequelize/PostgreSQL;
-- stack trace.
-
-Una inserción puede violar conceptualmente más de una exclusión. Mientras no se
-apruebe una prioridad contractual, no prometer cuál de los tres códigos se
-devuelve primero en ese escenario.
-
----
-
-## 20. Concurrencia en transiciones
-
-Dos solicitudes simultáneas no pueden producir transiciones incompatibles ni
-auditorías parciales sobre el mismo turno.
-
-La implementación debe garantizar de forma atómica que:
-
-- la transición parte del estado esperado;
-- solo una transición incompatible resulta exitosa;
-- el estado y su auditoría se confirman juntos;
-- una cancelación registra todos sus campos o ninguno;
-- completar y marcar ausente comprueban el inicio con un reloj consistente.
-
-La estrategia exacta —bloqueo de fila, actualización condicional u otra opción
-equivalente— debe estar aprobada antes de implementarse. No cambiar globalmente
-el nivel de aislamiento ni agregar locks por intuición.
-
-Agregar pruebas simultáneas para, como mínimo:
-
-- confirmar frente a cancelar;
-- completar frente a ausente;
-- dos cancelaciones;
-- edición de campo frente a transición terminal.
-
----
-
-## 21. Transacciones
-
-El service dueño del caso de uso abre la transacción y pasa la misma instancia
-a todas las operaciones relacionadas.
-
-Casos obligatorios:
-
-- vínculo automático + turno + auditoría;
-- transición de estado + auditoría;
-- cancelación + datos de cancelación + auditoría;
-- edición de observación + auditoría;
-- edición de nota interna + auditoría.
-
-Reglas:
-
-- no abrir transacciones independientes dentro de otra;
-- no confirmar resultados parciales;
-- no capturar un error para continuar silenciosamente;
+- el service dueño del caso de uso abre la transacción;
+- pasar la misma instancia a todas las consultas y escrituras relacionadas;
+- no abrir transacciones independientes dentro de una existente;
+- no confirmar un cambio clínico si falla una escritura obligatoria;
+- permitir rollback ante error;
 - mantener la transacción breve;
-- no realizar llamadas externas irreversibles dentro de ella;
-- respetar un orden consistente de adquisición de recursos;
-- permitir rollback completo ante cualquier error.
+- no ejecutar llamadas externas irreversibles dentro de ella;
+- no capturar un error para continuar silenciosamente;
+- no asumir que una transacción por sí sola evita carreras de estado.
 
 ---
 
-## 22. Auditoría
+## 21. Concurrencia
 
-Eventos mínimos:
+Las operaciones sensibles deben preservar la precondición de estado en el
+momento de escribir, no solo durante una consulta previa.
 
-```text
-TURNO_CREADO
-TURNO_CONFIRMADO
-TURNO_CANCELADO
-TURNO_COMPLETADO
-TURNO_AUSENTE
-TURNO_OBSERVACION_EDITADA
-TURNO_NOTA_INTERNA_EDITADA
-```
+Casos mínimos:
 
-La auditoría registra actor, acción, recurso, resultado, instante, correlation ID
-y metadatos mínimos sanitizados.
+- dos finalizaciones simultáneas;
+- edición concurrente con finalización;
+- dos ediciones simultáneas del mismo borrador.
 
-No registrar:
+Procedimiento general:
 
-- contenido de `observacionAdministrativa`;
-- contenido de `notasInternas`;
-- motivo completo de cancelación salvo aprobación normativa específica;
-- datos clínicos o del tutor;
-- cuerpos HTTP;
-- SQL o errores crudos.
+1. validar previamente para ofrecer errores claros;
+2. iniciar la transacción cuando corresponda;
+3. volver a proteger o comprobar autoría y estado en la escritura;
+4. ejecutar la modificación;
+5. comprobar cuántas filas fueron afectadas;
+6. registrar la auditoría obligatoria;
+7. traducir el conflicto sin exponer detalles internos;
+8. agregar una prueba concurrente contra PostgreSQL real.
 
-La auditoría exitosa comparte transacción con el cambio. El tratamiento de
-intentos fallidos sigue la estrategia transversal aprobada y no debe romper el
-rollback.
+La estrategia exacta para cada carrera —bloqueo de fila, actualización
+condicional u otra alternativa aprobada— todavía no está cerrada. No introducir
+automáticamente:
+
+- una columna de versión;
+- control optimista global;
+- un nivel de aislamiento más estricto;
+- bloqueos generales;
+- reintentos automáticos.
+
+Cualquier estrategia elegida debe impedir que una edición confirmada después de
+la finalización altere el contenido finalizado.
+
+---
+
+## 22. Constraints y persistencia
+
+PostgreSQL debe proteger como mínimo las invariantes documentadas que puedan
+expresarse en el esquema:
+
+- claves primarias y foráneas;
+- nulabilidad;
+- estados válidos;
+- coherencia de `estado` y `fecha_emision`;
+- referencias existentes;
+- unicidades que defina `docs/modelo-datos.md`.
+
+Reglas:
+
+- crear cambios mediante migraciones nuevas;
+- no modificar una migración ya aplicada;
+- asignar nombres estables a constraints reconocidos por el backend;
+- no exponer esos nombres en respuestas HTTP;
+- no sustituir constraints por consultas previas;
+- no usar `ON DELETE CASCADE` sobre informes o sus auditorías;
+- no debilitar integridad para hacer pasar una prueba;
+- mantener modelo Sequelize, migración y documentación sincronizados;
+- no usar `constraints: false` para ocultar asociaciones inconsistentes.
+
+La baja lógica de recursos relacionados no implica modificar las claves
+históricas del informe.
 
 ---
 
 ## 23. Errores funcionales
 
-Utilizar exactamente los códigos documentados en `docs/contrato-api.md`.
+Los errores de Sequelize y PostgreSQL no deben llegar al cliente.
 
-Casos centrales:
+Traducir según `docs/contrato-api.md`:
 
-```text
-TURNO_NO_ENCONTRADO
-TURNO_ACCESO_DENEGADO
-TURNO_PRESTADOR_AJENO
-TURNO_NOTAS_INTERNAS_DENEGADAS
-TURNO_CONFLICTO_PROFESIONAL
-TURNO_CONFLICTO_PACIENTE
-TURNO_CONFLICTO_CONSULTORIO
-TURNO_HORARIO_INVALIDO
-TURNO_FECHA_INVALIDA
-TURNO_DURACION_INVALIDA
-TURNO_TRANSICION_INVALIDA
-TURNO_TERMINAL_INMUTABLE
-TURNO_AUN_NO_COMENZO
-MOTIVO_CANCELACION_REQUERIDO
-PACIENTE_NO_VINCULADO
-```
+| Condición | Status habitual | Código |
+|---|---:|---|
+| body, params o query inválidos | `400` | El contractual vigente. |
+| autenticación ausente o inválida | `401` | El contractual vigente. |
+| rol sin permiso general | `403` | El contractual vigente. |
+| recurso fuera de scope, sin vínculo o no autorizado | Según contrato | No inventar. |
+| informe inexistente | Según contrato | No inventar. |
+| autor distinto | `403` o contractual | Usar el contrato. |
+| informe no editable o ya finalizado | `409` o contractual | Usar el contrato. |
+| paciente, autor o tipo inactivo | Según contrato | Usar el contrato. |
+| conflicto concurrente de estado | `409` | El contractual vigente. |
+| violación inesperada | `500` | `INTERNAL_ERROR` si así lo define el contrato. |
 
-También pueden corresponder errores de existencia o estado de paciente,
-prestador, servicio y consultorio.
+No inventar códigos para completar una tabla ausente. Si la condición está
+definida pero el código o status no lo están, detener esa parte y solicitar la
+decisión.
 
-Reglas:
+No devolver:
 
-- `409` para solapamiento o conflicto de estado;
-- `422` para reglas de negocio sintácticamente válidas;
-- `403` o `404` según el criterio contractual de ocultación;
-- `500 INTERNAL_ERROR` para una violación inesperada;
-- no depender únicamente del texto humano del motor;
-- no exponer información interna.
-
-No crear `SERVICIO_NO_ASIGNADO` para Turnos.
+- mensaje crudo de PostgreSQL;
+- nombre de constraint o tabla;
+- SQL o parámetros;
+- contenido clínico dentro del error;
+- stack trace;
+- detalles de existencia que faciliten IDOR;
+- diferencias no aprobadas que permitan enumerar pacientes o informes.
 
 ---
 
 ## 24. Consultas e índices
 
-Las consultas deben:
+Las consultas deben ser explícitas y respetar el scope desde PostgreSQL.
 
-- seleccionar columnas autorizadas;
-- aplicar scope desde el inicio;
-- incluir solo relaciones requeridas;
+Reglas:
+
+- seleccionar solo columnas necesarias y autorizadas;
+- filtrar informes profesionales mediante vínculos activos en la consulta;
+- incluir paciente, autor y tipo con aliases documentados;
 - evitar N+1;
 - paginar listados;
-- limitar el rango de agenda;
-- utilizar listas blancas para `sort` y `order`;
-- cancelar o ignorar correctamente resultados obsoletos en consumidores, sin
-  relajar el contrato backend;
-- parametrizar cualquier SQL literal.
+- no cargar contenido para listados;
+- no utilizar `include: { all: true }`;
+- no aceptar ordenamiento libre;
+- parametrizar SQL literal;
+- no concatenar entradas externas;
+- no agregar búsqueda de texto completo por intuición;
+- no introducir caché o desnormalización sin medición y aprobación.
 
-Antes de agregar un índice, identificar el endpoint, filtros, joins,
-ordenamiento, selectividad y volumen que lo justifican.
+Todo índice debe corresponder a una consulta real. Antes de agregarlo,
+identificar:
 
-Revisar especialmente consultas por:
+- endpoint que lo usa;
+- filtros y joins;
+- ordenamiento;
+- cardinalidad y selectividad;
+- índice existente que pueda cubrir la consulta;
+- costo de escritura.
 
-- inicio;
-- prestador + inicio;
-- paciente + inicio;
-- consultorio + inicio;
-- estado + inicio;
-- servicio + inicio.
+Revisar especialmente FKs y consultas por:
 
-No duplicar índices provistos por constraints ni agregar GiST, GIN o índices
-parciales sin la justificación aprobada. Verificar planes en un entorno
-controlado y recordar que `EXPLAIN ANALYZE` ejecuta la consulta.
+```text
+paciente_id
+autor_id
+tipo_informe_id
+estado
+created_at o fecha_emision, según contrato
+```
 
----
-
-## 25. Datos sensibles y logging
-
-Turnos puede relacionarse con información personal y clínica, pero la agenda
-solo expone su proyección contractual mínima.
-
-Está prohibido registrar:
-
-- nombres completos de pacientes en logs ordinarios;
-- contenido de observaciones o notas;
-- datos del tutor;
-- diagnósticos;
-- cuerpos completos;
-- SQL con valores;
-- IDs combinados con contenido sensible cuando no sean necesarios.
-
-Los logs técnicos pueden incluir ruta normalizada, status, duración,
-`correlationId` y código funcional sanitizado.
-
-No utilizar datos reales en seeders, fixtures, capturas, planes de consulta o
-pruebas.
+No crear índices GIN, GiST, trigramas o búsquedas sobre contenido clínico sin
+una decisión expresa de privacidad, retención y rendimiento.
 
 ---
 
-## 26. Exclusiones del MVP
+## 25. Datos clínicos y logging
 
-No agregar:
+`resumen` y `contenido` son información clínica sensible. El hecho de que una
+columna exista no autoriza a seleccionarla, registrarla ni devolverla.
 
-- vista mensual como regla del backend;
-- horarios personalizados por prestador;
-- recurrencia;
-- reservas públicas;
+Está prohibido:
+
+- registrar bodies de creación o edición;
+- imprimir título, resumen o contenido;
+- registrar respuestas completas;
+- copiar contenido a auditoría;
+- incluir contenido en mensajes de error;
+- usar datos clínicos reales en seeders, fixtures o snapshots;
+- guardar duplicados del contenido para búsqueda sin aprobación;
+- exponerlo en métricas, trazas o herramientas de monitoreo;
+- usar `console.log(informe)`;
+- devolver una instancia Sequelize completa;
+- incluir contenido en previews o listados.
+
+Usar listas positivas de atributos y sanitización estructural. No depender de
+expresiones regulares para ocultar información después de registrarla.
+
+---
+
+## 26. Conservación histórica
+
+Los informes forman parte de la historia clínica y no se eliminan.
+
+Reglas:
+
+- conservar paciente, autor, tipo, estado y fechas necesarios para interpretar
+  el registro;
+- no usar cascadas destructivas;
+- no transferir autoría;
+- no reutilizar IDs de recursos inactivos;
+- no reemplazar datos históricos con valores ficticios;
+- no sobrescribir informes finalizados para corregir catálogos;
+- no anular automáticamente referencias cuando un recurso se desactiva;
+- mantener legibles los finalizados dentro del scope autorizado.
+
+Una necesidad de rectificación, anexado o versionado clínico requiere un caso de
+uso aprobado. No improvisar ese flujo mediante `PUT`, SQL manual o una migración
+de datos incidental.
+
+---
+
+## 27. Exclusiones del MVP
+
+No incorporar:
+
+- eliminación de informes;
+- papelera o restauración;
+- reapertura de finalizados;
+- transferencia o reasignación de autor;
+- coautoría;
+- aprobación por un superior;
+- firma digital;
+- firma manuscrita capturada;
+- versionado clínico;
+- anexos o fe de erratas;
+- comentarios sobre informes;
+- autosave obligatorio;
+- generación de PDF en backend;
+- almacenamiento de PDFs;
+- envío por correo o mensajería;
 - acceso de pacientes o tutores;
-- bloqueos manuales de agenda;
-- feriados automáticos;
-- listas de espera;
-- sobreturnos;
-- drag-and-drop;
-- resize;
-- edición estructural;
-- reprogramación;
-- eliminación física;
-- relación `turno_origen_id`;
-- notificaciones automáticas por email, WhatsApp o push.
+- plantillas clínicas no documentadas;
+- búsqueda sobre resumen o contenido;
+- edición administrativa de contenido finalizado.
 
-Una petición de frontend no autoriza a ampliar el dominio backend.
+Agregar cualquiera de estas capacidades exige contrato, permisos, modelo de
+datos, auditoría y pruebas propios.
 
 ---
 
-## 27. Pruebas obligatorias
-
-### Horarios y fechas
-
-- lunes a sábado válidos;
-- domingo rechazado;
-- fecha/hora pasada rechazada;
-- inicio antes de 08:00 rechazado;
-- fin después de 21:00 rechazado;
-- cinco duraciones permitidas;
-- otras duraciones rechazadas;
-- conversión local a UTC;
-- `finAt` calculado por backend;
-- dos intervalos consecutivos aceptados.
-
-### Permisos y alcance
-
-- roles globales consultan cualquier agenda;
-- profesional solo consulta y administra la propia;
-- profesional no fuerza `profesionalId` ajeno;
-- acceso directo por UUID ajeno se rechaza;
-- filtros no amplían scope;
-- administrador y secretaría no reciben notas internas;
-- profesional ajeno no recibe ni modifica notas;
-- coordinación y responsable acceden según policy;
-- profesional necesita paciente vinculado;
-- roles autorizados crean vínculo automático.
+## 28. Pruebas obligatorias
 
 ### Creación
 
-- recursos activos aceptados;
-- recursos inexistentes e inactivos traducidos;
-- servicio activo habitual aceptado;
-- servicio activo no habitual aceptado;
-- `SERVICIO_NO_ASIGNADO` ausente;
-- estado inicial `pendiente`;
-- campos derivados no aceptados;
-- permiso de `notasInternas` aplicado incluso con `null` explícito;
-- rollback del vínculo si falla el turno;
-- auditoría atómica y sanitizada.
+- profesional activo con vínculo activo;
+- profesional sin vínculo;
+- profesional con vínculo inactivo;
+- coordinación sobre paciente activo;
+- administrador y secretaría rechazados;
+- paciente inexistente o inactivo;
+- tipo inexistente o inactivo;
+- autor forzado desde body rechazado;
+- estado o fecha de emisión enviados por cliente rechazados;
+- creación en `borrador` y `fechaEmision = null`;
+- auditoría sin contenido clínico.
 
-### Estados
+### Lectura y scope
 
-- todas las transiciones válidas;
-- todas las transiciones inválidas;
-- completar y ausente antes del inicio rechazados;
-- cancelación sin motivo rechazada;
-- cancelación registra actor e instante;
-- cancelar libera el intervalo;
-- terminales inmutables;
-- no existe endpoint de reprogramación ni edición genérica.
+- alcance global de administrador, coordinación y secretaría;
+- profesional con vínculo activo;
+- profesional sin vínculo;
+- profesional leyendo informe ajeno de paciente vinculado;
+- acceso directo por UUID fuera de scope;
+- borradores incluidos dentro del scope autorizado;
+- listado sin resumen ni contenido;
+- detalle completo autorizado;
+- capacidades calculadas correctamente;
+- `INFORME_VISUALIZADO` sin contenido clínico.
 
-### Agenda y proyecciones
+### Edición
 
-- `desde` inclusivo y `hasta` exclusivo;
-- rango mayor a 31 días rechazado;
-- paginación y orden contractual;
-- proyección de listado mínima;
-- detalle omite campos no autorizados;
-- ausencia de datos clínicos y del tutor;
-- disponibilidad no crea reservas;
-- combinaciones aprobadas de filtros.
+- autor profesional activo editando su borrador;
+- autor coordinación activo editando su borrador;
+- profesional no autor rechazado;
+- coordinación no autora rechazada;
+- administrador y secretaría rechazados;
+- autor inactivo rechazado;
+- informe finalizado rechazado;
+- cambio de paciente, autor, estado o fecha rechazado;
+- tipo nuevo inactivo rechazado;
+- edición repetida válida de un borrador;
+- auditoría sin contenido clínico.
+
+### Finalización
+
+- autor activo finaliza su borrador;
+- no autor rechazado;
+- autor inactivo rechazado;
+- transición a `finalizado`;
+- `fechaEmision` asignada por backend;
+- auditoría en la misma transacción;
+- rollback completo si falla una escritura obligatoria;
+- segunda finalización traducida según contrato;
+- informe finalizado no editable;
+- informe finalizado no eliminable ni reabrible.
 
 ### Concurrencia con PostgreSQL real
 
-- dos turnos simultáneos solapan prestador;
-- dos turnos simultáneos solapan paciente;
-- dos turnos simultáneos solapan consultorio;
-- turnos consecutivos no se bloquean;
-- turno cancelado no bloquea;
-- vínculo automático revierte al perder la carrera;
-- transiciones simultáneas incompatibles no producen resultados parciales;
-- errores se traducen sin exponer constraints.
+- dos finalizaciones simultáneas;
+- edición simultánea con finalización;
+- dos ediciones simultáneas, documentando la política vigente;
+- ausencia de modificación clínica posterior a la finalización;
+- rollback y respuesta contractual ante conflicto.
 
-No reemplazar estas pruebas con mocks de Sequelize ni con dos operaciones
-secuenciales.
+No reemplazar estas pruebas con mocks de Sequelize. Las pruebas concurrentes no
+deben compartir una única transacción de test.
+
+### Privacidad
+
+- logs sin título, resumen ni contenido;
+- errores sin contenido ni SQL;
+- auditoría sin cuerpos clínicos;
+- listados sin selección accidental de contenido;
+- fixtures completamente ficticios;
+- intentos de IDOR sin filtración de existencia no aprobada.
 
 ---
 
-## 28. Acciones prohibidas
+## 29. Acciones prohibidas
 
 No realizar ninguna de estas acciones:
 
-- utilizar `sequelize.sync()`;
-- sustituir PostgreSQL por SQLite en integración;
-- verificar disponibilidad solo en JavaScript;
-- eliminar o debilitar exclusiones temporales;
-- permitir solapamiento deliberado sin decisión normativa;
-- exigir servicio habitual;
-- emitir `SERVICIO_NO_ASIGNADO`;
-- permitir que el profesional cree para otro prestador;
-- crear automáticamente un vínculo para un profesional sin acceso previo;
-- devolver notas internas a administrador o secretaría;
-- incluir notas internas en listados;
+- aceptar `autorId`, `estado` o `fechaEmision` desde el cliente;
+- permitir que un rol global edite un informe ajeno;
+- limitar la lectura profesional solo a informes propios;
+- conceder lectura por autoría cuando ya no existe vínculo sin decisión expresa;
+- editar o reabrir un informe finalizado;
+- eliminar informes;
+- transferir borradores de autores inactivos;
+- crear vínculos automáticamente al redactar;
+- omitir auditoría obligatoria;
+- copiar contenido clínico a auditoría o logs;
+- cargar contenido en listados;
+- generar PDF en backend;
+- usar `sequelize.sync()`;
+- modificar migraciones aplicadas;
+- agregar `ON DELETE CASCADE` sobre historia clínica;
 - devolver instancias Sequelize completas;
-- autorizar por UUID o por datos del cliente;
-- aceptar estado, inicio, fin o actores derivados desde el body;
-- editar estructura de un turno existente;
-- agregar reprogramación o eliminación;
-- revertir estados terminales;
-- cancelar sin motivo;
-- registrar contenido sensible en logs o auditoría;
-- realizar SQL dinámico no parametrizado;
-- exponer nombres de constraints o SQL;
-- inventar granularidad o precedencia de disponibilidad;
-- declarar segura la concurrencia sin pruebas simultáneas reales.
+- usar `include: { all: true }`;
+- construir SQL dinámico no parametrizado;
+- usar mocks como única validación de concurrencia;
+- introducir trigger, versionado o bloqueo global sin aprobación;
+- inventar la política para pacientes, vínculos o tipos inactivos;
+- afirmar inmutabilidad en PostgreSQL sin prueba directa;
+- modificar documentación normativa para justificar una desviación.
 
 ---
 
-## 29. Procedimiento de trabajo
+## 30. Sincronización documental
+
+Cuando cambie el módulo, revisar únicamente los artefactos afectados:
+
+```text
+docs/contrato-api.md
+docs/matriz-permisos.md
+docs/modelo-datos.md
+docs/arquitectura-backend.md
+api/migrations/
+api/src/shared/database/models/
+api/src/shared/database/associations.js
+api/src/modules/informes/
+api/src/modules/auditoria/
+api/tests/
+```
+
+Actualizar `contrato-api.md` si cambian:
+
+- campos de entrada o salida;
+- endpoints;
+- status o códigos funcionales;
+- filtros, búsqueda, ordenamiento o paginación;
+- comportamiento observable de edición o finalización;
+- proyecciones y capacidades.
+
+Actualizar `matriz-permisos.md` si cambian:
+
+- roles con lectura o escritura;
+- scope global o vinculado;
+- reglas de autoría;
+- campos clínicos visibles;
+- tratamiento de recursos inactivos.
+
+Actualizar `modelo-datos.md` si cambian:
+
+- estados;
+- nulabilidad;
+- constraints;
+- claves foráneas;
+- política histórica;
+- estrategia de inmutabilidad en PostgreSQL.
+
+---
+
+## 31. Procedimiento de trabajo
 
 ### Antes del cambio
 
-1. Leer `api/AGENTS.md` y este archivo.
-2. Consultar arquitectura, contrato, matriz y modelo de datos.
-3. Leer instrucciones de base de datos y del módulo relacionado.
-4. Inspeccionar migraciones, modelo Turno, asociaciones y tests existentes.
-5. Identificar endpoint, actor, scope, campos y transición afectados.
-6. Revisar zona horaria, intervalo y estados bloqueantes.
-7. Revisar límites transaccionales y concurrencia.
-8. Comprobar si existe una decisión pendiente.
-9. Detener y solicitar definición cuando corresponda.
+1. Leer `api/AGENTS.md`.
+2. Leer este archivo.
+3. Leer el `AGENTS.md` de base de datos si hay persistencia afectada.
+4. Consultar contrato, matriz y modelo vigentes.
+5. Inspeccionar routes, schemas, services, policies y proyecciones existentes.
+6. Inspeccionar migraciones, modelos y asociaciones relacionadas.
+7. Identificar alcance, autoría, estado y campos clínicos involucrados.
+8. Evaluar inmutabilidad, concurrencia, auditoría e historia.
+9. Identificar decisiones pendientes.
+10. Detener cualquier cambio destructivo o ambiguo.
 
 ### Durante el cambio
 
-1. Mantener routes, validation, controller, service, policy y proyección
-   separados.
-2. Reutilizar utilidades temporales centralizadas.
-3. Aplicar policy antes de exponer campos o modificar el recurso.
-4. Usar una transacción en operaciones compuestas.
-5. Conservar PostgreSQL como garantía final.
-6. Traducir errores al contrato.
-7. Auditar sin copiar contenido.
-8. Agregar pruebas proporcionales al riesgo.
-9. Actualizar únicamente la documentación afectada.
+1. Mantener el caso de uso acotado.
+2. Rechazar campos inesperados.
+3. Aplicar scope en backend.
+4. Verificar recurso, vínculo, autoría, actividad y estado.
+5. Seleccionar atributos mediante listas positivas.
+6. Abrir y propagar transacción cuando corresponda.
+7. Preservar precondiciones ante concurrencia.
+8. Registrar auditoría sin contenido clínico.
+9. Traducir errores internos.
+10. Agregar pruebas de permisos, privacidad y estado.
+11. Agregar pruebas concurrentes cuando corresponda.
+12. Actualizar solo la documentación afectada.
 
 ### Después del cambio
 
-1. Ejecutar lint.
-2. Ejecutar pruebas unitarias.
-3. Ejecutar integración contra PostgreSQL real.
-4. Ejecutar concurrencia cuando se tocó creación, estados o constraints.
-5. Migrar una base de prueba desde cero si cambió el esquema.
-6. Verificar proyecciones por rol y campo.
-7. Inspeccionar logs y auditoría de prueba.
-8. Verificar códigos y envelopes.
-9. Confirmar que endpoints excluidos siguen ausentes.
-10. Informar comandos, resultados y validaciones omitidas.
+1. Ejecutar migraciones en una base de test desde cero si cambió persistencia.
+2. Ejecutar pruebas unitarias e integración.
+3. Ejecutar pruebas concurrentes relevantes.
+4. Ejecutar lint.
+5. Revisar proyecciones y SQL generado.
+6. Verificar que listados no seleccionen contenido clínico.
+7. Verificar logs, errores y auditoría.
+8. Verificar inmutabilidad después de finalizar.
+9. Comparar documentación, modelo y comportamiento observable.
+10. Informar comandos, resultados y validaciones no realizadas.
 
-No declarar la tarea terminada si las validaciones relevantes no se ejecutaron.
+No declarar una tarea terminada si no se ejecutaron las validaciones
+correspondientes.
 
 ---
 
-## 30. Definition of Done
+## 32. Definition of Done
 
-Un cambio de Turnos está completo solamente cuando:
+Un cambio en Informes está completo solamente cuando:
 
-- respeta los diez endpoints contractuales;
-- no agrega edición, reprogramación ni eliminación;
-- conserva los cinco estados y transiciones aprobadas;
-- mantiene `pendiente` como estado inicial;
-- usa la zona `America/Argentina/Cordoba` para interpretar entradas;
-- persiste instantes UTC;
-- calcula `finAt` en backend;
-- respeta lunes a sábado, 08:00–21:00 y duraciones cerradas;
-- mantiene intervalos `[inicio, fin)`;
-- acepta cualquier servicio activo;
-- no exige servicio habitual;
-- aplica scope global o propio correctamente;
-- protege acceso por recurso y por campo;
-- no expone notas internas a administrador o secretaría;
-- mantiene listado y detalle como proyecciones diferentes;
-- crea vínculo automático solo para actores autorizados;
-- confirma vínculo, turno y auditoría de forma atómica;
-- PostgreSQL impide los tres tipos de solapamiento;
-- los conflictos internos se traducen a códigos funcionales;
-- las transiciones concurrentes no generan resultados parciales;
-- los terminales permanecen inmutables;
-- la cancelación conserva historia y libera el horario;
-- logs y auditoría no contienen datos sensibles;
-- pruebas relevantes pasan contra PostgreSQL real;
-- concurrencia se prueba cuando corresponde;
+- respeta los endpoints contractuales;
+- no incorpora rutas o capacidades excluidas;
+- autor, estado y fecha de emisión se asignan en backend;
+- el profesional requiere vínculo activo donde está definido;
+- los roles globales no obtienen escritura por jerarquía;
+- solo el autor activo modifica o finaliza su borrador;
+- la lectura profesional incluye informes ajenos de pacientes vinculados;
+- el scope se aplica también al acceso directo por UUID;
+- el listado no selecciona ni devuelve resumen o contenido;
+- el detalle devuelve contenido solo al actor autorizado;
+- `puedeEditar` y `puedeFinalizar` se calculan en backend;
+- toda visualización exitosa se audita según la política vigente;
+- la finalización es transaccional;
+- `fechaEmision` y estado quedan coherentes;
+- un finalizado no puede modificarse, reabrirse ni eliminarse;
+- las carreras de estado fueron consideradas y probadas;
+- la historia se conserva cuando se desactivan recursos relacionados;
+- no se transfieren borradores de autores inactivos;
+- logs, errores y auditoría no contienen información clínica;
+- los errores internos se traducen al contrato;
+- las pruebas relevantes pasan contra PostgreSQL real;
 - lint pasa;
-- documentación, migraciones, modelos y tests afectados están sincronizados;
-- toda decisión pendiente continúa visible y no fue inventada.
+- la documentación afectada está actualizada;
+- cualquier validación omitida o decisión pendiente quedó informada.
 
 ---
 
-## 31. Decisiones pendientes
+## 33. Decisiones pendientes
 
-No resolver por cuenta propia:
+Mientras no estén resueltas en la documentación normativa, no definir por
+cuenta propia:
 
-1. precedencia o intersección exacta cuando disponibilidad recibe a la vez
-   `prestadorId` y `consultorioId`;
-2. granularidad de los comienzos ofrecidos por disponibilidad;
-3. alineación obligatoria de `horaInicio`, si existiera, a intervalos de 15 o
-   30 minutos;
-4. prioridad del código funcional cuando una creación entra en conflicto
-   simultáneamente por más de un recurso;
-5. estrategia exacta para serializar transiciones concurrentes;
-6. política sobre correcciones administrativas excepcionales de un turno
-   terminal;
-7. incorporación futura de horarios propios, descansos, feriados o bloqueos;
-8. límites definitivos de longitud de observaciones y notas si no aparecen en
-   el contrato/modelo vigente;
-9. nombres definitivos de constraints si aún no están fijados en migraciones y
-   `modelo-datos.md`;
-10. comportamiento exacto de disponibilidad cuando solo se filtra consultorio
-    y existen múltiples prestadores posibles;
-11. reloj o abstracción temporal común para pruebas de transiciones;
-12. estrategia de auditoría de intentos fallidos sin romper rollback.
+- acceso de lectura del autor después de cerrarse su vínculo con el paciente;
+- posibilidad de editar o finalizar un borrador después de cerrar el vínculo;
+- tratamiento de borradores existentes cuando el paciente queda inactivo;
+- posibilidad de finalizar un borrador cuyo tipo de informe quedó inactivo;
+- política ante fallo al registrar `INFORME_VISUALIZADO`;
+- estrategia exacta para dos finalizaciones simultáneas;
+- estrategia exacta para edición concurrente con finalización;
+- política para dos ediciones simultáneas;
+- uso de bloqueo de fila o actualización condicional;
+- incorporación de versionado optimista;
+- protección de inmutabilidad mediante trigger u otro mecanismo PostgreSQL;
+- flujo de corrección, anexado o rectificación de un finalizado;
+- catálogo definitivo de eventos de auditoría y sus metadatos;
+- códigos y status exactos para casos todavía ausentes del contrato;
+- límites y defaults definitivos de paginación y búsqueda;
+- índices de búsqueda textual;
+- retención o archivado específico de informes y auditorías.
 
-Cuando una tarea dependa de uno de estos puntos:
-
-1. detener únicamente la parte afectada;
-2. explicar el riesgo y las opciones;
-3. señalar contrato, modelo, permisos y pruebas que cambiarían;
-4. solicitar una decisión explícita;
-5. no completar el vacío con una convención personal, del ORM o de la librería
-   de calendario.
+Cuando una tarea dependa de alguno de estos puntos, detener esa parte y solicitar
+una decisión explícita. No completar vacíos mediante convenciones generales ni
+por semejanza con otros módulos.
