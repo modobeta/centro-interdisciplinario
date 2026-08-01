@@ -1,0 +1,3 @@
+const summary = (row) => ({ id: row.id, dni: row.dni, nombre: row.nombre, apellido: row.apellido, fechaNacimiento: row.fechaNacimiento, colegio: row.colegio, poseeCud: row.poseeCud, cudFechaVencimiento: row.cudFechaVencimiento, activo: row.activo });
+const detail = (row) => ({ ...summary(row), diagnostico: row.diagnostico, observaciones: row.observaciones, tutor: row.tutor ? { id: row.tutor.id, nombre: row.tutor.nombre, apellido: row.tutor.apellido, telefono: row.tutor.telefono, parentesco: row.tutor.parentesco, email: row.tutor.email, direccion: row.tutor.direccion, observaciones: row.tutor.observaciones } : null, createdAt: row.createdAt, updatedAt: row.updatedAt });
+module.exports = { summary, detail };

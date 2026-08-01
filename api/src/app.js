@@ -1,0 +1,30 @@
+const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const pinoHttp = require('pino-http');
+const env = require('./config/env');
+const logger = require('./config/logger');
+const corsOptions = require('./config/cors');
+const requestContext = require('./shared/middlewares/requestContext');
+const { globalLimiter } = require('./shared/middlewares/rateLimit');
+const notFound = require('./shared/middlewares/notFound');
+const errorHandler = require('./shared/middlewares/errorHandler');
+
+const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', env.trustProxy);
+app.use(requestContext);
+app.use(pinoHttp({ logger, serializers: { req: (req) => ({ method: req.method, url: req.url, correlationId: req.raw?.correlationId }), res: (res) => ({ statusCode: res.statusCode }) } }));
+app.use(helmet());
+app.use(cors(corsOptions));
+app.use(globalLimiter);
+app.use(express.json({ limit: env.jsonBodyLimit }));
+app.use(express.urlencoded({ extended: false, limit: env.jsonBodyLimit }));
+app.use(cookieParser());
+app.use('/uploads', express.static(env.upload.root, { dotfiles: 'deny', index: false, fallthrough: false }));
+app.use(require('./routes'));
+app.use(notFound);
+app.use(errorHandler(logger));
+
+module.exports = app;

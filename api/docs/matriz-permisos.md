@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Matriz de permisos, acceso por recurso, campo y auditoría — MVP
 
-**Versión documental:** 4.1
+**Versión documental:** 4.2
 **Fecha:** 1 de agosto de 2026  
 **Carácter:** normativo para backend, frontend, pruebas y agentes de programación  
 **Contrato relacionado:** `docs/contrato-api.md`

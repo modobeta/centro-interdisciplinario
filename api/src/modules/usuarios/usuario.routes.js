@@ -1,0 +1,22 @@
+const express = require('express');
+const asyncHandler = require('../../shared/utils/asyncHandler');
+const validate = require('../../shared/middlewares/validate');
+const authorize = require('../../shared/middlewares/authorize');
+const upload = require('../../shared/files/image-upload.middleware');
+const { PERMISSIONS } = require('../../shared/constants/permissions');
+const validation = require('./usuario.validation');
+const controller = require('./usuario.controller');
+
+const router = express.Router();
+router.get('/', authorize(PERMISSIONS.USERS_READ_DIRECTORY), validate(validation.list), asyncHandler(controller.list));
+router.post('/', authorize(PERMISSIONS.USERS_MANAGE), validate(validation.create), asyncHandler(controller.create));
+router.get('/:id/servicios', authorize(PERMISSIONS.USERS_READ_DIRECTORY), validate(validation.userServiceList), asyncHandler(controller.listServices));
+router.post('/:id/servicios', authorize(PERMISSIONS.USERS_MANAGE_SERVICES), validate(validation.addService), asyncHandler(controller.addService));
+router.delete('/:id/servicios/:servicioId', authorize(PERMISSIONS.USERS_MANAGE_SERVICES), validate(validation.removeService), asyncHandler(controller.removeService));
+router.patch('/:id/estado', authorize(PERMISSIONS.USERS_MANAGE), validate(validation.state), asyncHandler(controller.state));
+router.patch('/:id/restablecer-acceso', authorize(PERMISSIONS.USERS_MANAGE), validate(validation.id), asyncHandler(controller.resetAccess));
+router.put('/:id/foto', authorize(PERMISSIONS.USERS_MANAGE), validate(validation.id), upload, asyncHandler(controller.photo));
+router.delete('/:id/foto', authorize(PERMISSIONS.USERS_MANAGE), validate(validation.id), asyncHandler(controller.deletePhoto));
+router.get('/:id', authorize(PERMISSIONS.USERS_READ_DIRECTORY), validate(validation.id), asyncHandler(controller.get));
+router.put('/:id', authorize(PERMISSIONS.USERS_MANAGE), validate(validation.update), asyncHandler(controller.update));
+module.exports = router;

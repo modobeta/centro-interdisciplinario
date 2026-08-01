@@ -1,0 +1,23 @@
+module.exports = (models) => {
+  const { Rol, Usuario, Sesion, Servicio, UsuarioServicio, Paciente, Tutor, UsuarioPaciente, Consultorio, Turno, TipoInforme, Informe, Asunto, Conversacion, ConversacionParticipante, Mensaje, AuditoriaEvento } = models;
+  Rol.hasMany(Usuario, { foreignKey: 'rolId', as: 'usuarios' }); Usuario.belongsTo(Rol, { foreignKey: 'rolId', as: 'rol' });
+  Usuario.hasMany(Sesion, { foreignKey: 'usuarioId', as: 'sesiones' }); Sesion.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
+  Usuario.belongsToMany(Servicio, { through: UsuarioServicio, foreignKey: 'usuarioId', otherKey: 'servicioId', as: 'serviciosHabituales' });
+  Servicio.belongsToMany(Usuario, { through: UsuarioServicio, foreignKey: 'servicioId', otherKey: 'usuarioId', as: 'prestadores' });
+  Paciente.hasOne(Tutor, { foreignKey: 'pacienteId', as: 'tutor' }); Tutor.belongsTo(Paciente, { foreignKey: 'pacienteId', as: 'paciente' });
+  Usuario.belongsToMany(Paciente, { through: UsuarioPaciente, foreignKey: 'usuarioId', otherKey: 'pacienteId', as: 'pacientesVinculados' });
+  Paciente.belongsToMany(Usuario, { through: UsuarioPaciente, foreignKey: 'pacienteId', otherKey: 'usuarioId', as: 'prestadoresVinculados' });
+  UsuarioPaciente.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'prestador' }); UsuarioPaciente.belongsTo(Paciente, { foreignKey: 'pacienteId', as: 'paciente' });
+  Turno.belongsTo(Paciente, { foreignKey: 'pacienteId', as: 'paciente' }); Turno.belongsTo(Usuario, { foreignKey: 'prestadorId', as: 'prestador' });
+  Turno.belongsTo(Consultorio, { foreignKey: 'consultorioId', as: 'consultorio' }); Turno.belongsTo(Servicio, { foreignKey: 'servicioId', as: 'servicio' });
+  Turno.belongsTo(Usuario, { foreignKey: 'creadoPor', as: 'creador' }); Turno.belongsTo(Usuario, { foreignKey: 'canceladoPor', as: 'cancelador' });
+  Informe.belongsTo(Paciente, { foreignKey: 'pacienteId', as: 'paciente' }); Informe.belongsTo(Usuario, { foreignKey: 'autorId', as: 'autor' }); Informe.belongsTo(TipoInforme, { foreignKey: 'tipoInformeId', as: 'tipoInforme' });
+  Informe.hasMany(UsuarioPaciente, { sourceKey: 'pacienteId', foreignKey: 'pacienteId', as: 'vinculosActivos' });
+  Conversacion.belongsTo(Asunto, { foreignKey: 'asuntoId', as: 'asunto' }); Conversacion.belongsTo(Paciente, { foreignKey: 'pacienteId', as: 'paciente' });
+  Conversacion.belongsToMany(Usuario, { through: ConversacionParticipante, foreignKey: 'conversacionId', otherKey: 'usuarioId', as: 'participantes' });
+  Usuario.belongsToMany(Conversacion, { through: ConversacionParticipante, foreignKey: 'usuarioId', otherKey: 'conversacionId', as: 'conversaciones' });
+  Conversacion.hasMany(ConversacionParticipante, { foreignKey: 'conversacionId', as: 'estadosParticipantes' }); ConversacionParticipante.belongsTo(Conversacion, { foreignKey: 'conversacionId', as: 'conversacion' });
+  ConversacionParticipante.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' }); ConversacionParticipante.belongsTo(Mensaje, { foreignKey: 'ultimoMensajeLeidoId', as: 'ultimoMensajeLeido' });
+  Conversacion.hasMany(Mensaje, { foreignKey: 'conversacionId', as: 'mensajes' }); Mensaje.belongsTo(Conversacion, { foreignKey: 'conversacionId', as: 'conversacion' });
+  Mensaje.belongsTo(Usuario, { foreignKey: 'remitenteId', as: 'remitente' }); AuditoriaEvento.belongsTo(Usuario, { foreignKey: 'usuarioId', as: 'usuario' });
+};

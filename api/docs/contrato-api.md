@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Contrato de API REST — MVP
 
-**Versión documental:** 4.1
+**Versión documental:** 4.2
 **Fecha:** 1 de agosto de 2026  
 **Base path:** `/api/v1`  
 **Formato:** JSON UTF-8  
@@ -679,7 +679,7 @@ Administrador recibe proyección administrativa. El resto recibe directorio solo
 | `especialidad` | string/null | Cond. | Obligatoria para `profesional`; máximo 150. |
 | `telefono` | string/null | No | Máximo 40. |
 | `bio` | string/null | No | Texto plano. |
-| `funcionPublica` | string/null | No | Máximo 160. |
+| `funcionPublica` | string/null | No | Máximo 150. |
 | `visiblePublicamente` | boolean | No | Default `false`. |
 | `ordenPublico` | entero/null | No | Cero o positivo. |
 
@@ -2751,6 +2751,7 @@ VALIDATION_ERROR
 AUTHENTICATION_REQUIRED
 FORBIDDEN
 FORBIDDEN_FILTER
+NOT_FOUND
 INTERNAL_ERROR
 RATE_LIMIT_EXCEEDED
 CREDENCIALES_INVALIDAS

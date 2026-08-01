@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Arquitectura del backend — MVP
 
-**Versión documental:** 4.1
+**Versión documental:** 4.2
 **Fecha:** 1 de agosto de 2026  
 **Estado:** baseline normativo para implementación  
 **Alcance:** estructura, capas, tecnologías y criterios generales del backend
@@ -413,6 +413,7 @@ api/
 ├── scripts/
 ├── docs/
 ├── .env.example
+├── .nvmrc
 ├── .sequelizerc
 ├── AGENTS.md
 ├── eslint.config.js
@@ -500,7 +501,7 @@ No mantener dos nomenclaturas paralelas de permisos.
 
 | Área | Tecnología o decisión |
 |---|---|
-| Runtime | Node.js LTS fijado en `.nvmrc` y `engines`. |
+| Runtime | Node.js 22.19.0 fijado en `.nvmrc` y `engines`. |
 | Lenguaje | JavaScript. |
 | Módulos | CommonJS. |
 | HTTP | Express 5. |
@@ -582,7 +583,10 @@ Orden recomendado en `src/app.js`:
 10. middleware de ruta no encontrada;
 11. middleware central de errores.
 
-El parser multipart no debe instalarse globalmente. Multer se aplica solo en los cuatro endpoints administrativos de imágenes documentados por el contrato.
+El parser multipart no debe instalarse globalmente. Existen cuatro operaciones
+administrativas de imagen, pero Multer se aplica únicamente a los dos endpoints
+`PUT` que reciben `multipart/form-data`; las dos operaciones `DELETE` no montan
+parser de archivos.
 
 ---
 

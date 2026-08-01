@@ -1,0 +1,56 @@
+{
+  "name": "centro-interdisciplinario-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API REST del sistema de gestión para centros interdisciplinarios.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": "22.19.x",
+    "npm": ">=9.5.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "eslint .",
+    "test": "jest --runInBand",
+    "test:unit": "jest --selectProjects unit --runInBand",
+    "test:watch": "jest --selectProjects unit --watch",
+    "test:coverage": "jest --coverage --runInBand",
+    "test:integration": "jest --selectProjects integration --runInBand",
+    "test:concurrency": "jest --selectProjects concurrency --runInBand",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:status": "sequelize-cli db:migrate:status",
+    "db:validate": "node scripts/validate-database.js",
+    "docs:validate": "node scripts/validate-docs.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.1",
+    "helmet": "^8.3.0",
+    "joi": "^18.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "luxon": "^3.7.2",
+    "multer": "^2.2.0",
+    "pg": "^8.22.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "eslint-plugin-jest": "^29.16.0",
+    "globals": "^17.8.0",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "pino-pretty": "^13.1.3",
+    "sequelize-cli": "^6.6.5",
+    "supertest": "^7.2.2"
+  }
+}

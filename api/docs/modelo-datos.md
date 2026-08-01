@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Modelo de datos y reglas de persistencia — MVP
 
-**Versión documental:** 4.1
+**Versión documental:** 4.2
 **Fecha:** 1 de agosto de 2026
 **Motor:** PostgreSQL 16+
 **ORM:** Sequelize 6
@@ -1179,7 +1179,8 @@ Pruebas concurrentes obligatorias:
 - edición concurrente con finalización;
 - avances de lectura desde dos dispositivos;
 - incorporación de participante y envío de mensaje simultáneos;
-- refreshes simultáneos cuando se apruebe su estrategia.
+- refreshes simultáneos conforme a la estrategia de rotación y reutilización
+  aprobada.
 
 No existe una prioridad aprobada cuando un turno viola a la vez varios antisolapamientos. No prometer un código específico hasta resolverla.
 
@@ -1230,7 +1231,7 @@ No agregar índices duplicados de `UNIQUE` o PK. Verificar planes con volumen re
 La FK `ultimo_mensaje_leido_id` se agrega después de `mensajes` para evitar la dependencia circular inicial.
 
 La API todavía no está publicada. Las migraciones iniciales deben incorporar
-directamente este modelo v4.1, incluidos digests de sesión, `prestador_id`,
+directamente este modelo v4.2, incluidos digests de sesión, `prestador_id`,
 versión de informes, constraints de orden e integridad compuesta de lectura. No
 se mantienen alias ni migraciones de compatibilidad para nombres contractuales
 anteriores. Una base local creada desde un borrador previo es desechable y debe

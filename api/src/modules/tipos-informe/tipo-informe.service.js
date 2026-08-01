@@ -1,0 +1,1 @@
+const { TipoInforme } = require('../../shared/database/models'); const factory = require('../catalogos/catalogo.service-factory'); module.exports = factory({ model: TipoInforme, resource: 'tipo_informe', notFoundCode: 'TIPO_INFORME_NO_ENCONTRADO', fields: ['nombre', 'descripcion'] });
