@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Arquitectura del backend — MVP
 
-**Versión documental:** 4.0  
+**Versión documental:** 4.1
 **Fecha:** 1 de agosto de 2026  
 **Estado:** baseline normativo para implementación  
 **Alcance:** estructura, capas, tecnologías y criterios generales del backend
@@ -18,7 +18,7 @@ Este documento define la arquitectura técnica obligatoria del backend del MVP. 
 - responsabilidades y dependencias entre capas;
 - criterios de configuración, persistencia, seguridad y operación;
 - estrategia de pruebas;
-- riesgos aceptados y decisiones pendientes.
+- riesgos aceptados y deuda técnica no bloqueante.
 
 Debe leerse junto con:
 
@@ -31,19 +31,26 @@ Este archivo no reemplaza el contrato de API, la matriz de permisos ni el modelo
 
 ---
 
-## 2. Precedencia documental
+## 2. Autoridad documental y jerarquía operativa
 
-Aplicar el siguiente orden:
+Cada fuente es autoridad dentro de su incumbencia:
 
-1. requerimientos funcionales y decisiones expresamente aprobadas;
-2. `docs/contrato-api.md`;
-3. `docs/matriz-permisos.md`;
-4. `docs/modelo-datos.md`;
-5. este documento;
-6. `api/AGENTS.md`;
-7. el `AGENTS.md` más cercano al archivo modificado.
+| Fuente | Autoridad |
+|---|---|
+| `docs/contrato-api.md` | Método, URL, entrada, salida, status y códigos. |
+| `docs/matriz-permisos.md` | Rol, acción, scope, policy y campos. |
+| `docs/modelo-datos.md` | Tablas, relaciones, índices, constraints y transacciones. |
+| Este documento | Estructura, capas, stack y criterios técnicos. |
 
-Los `AGENTS.md` explican cómo trabajar dentro del repositorio. No pueden modificar silenciosamente el comportamiento funcional definido por los documentos normativos.
+Los requerimientos y decisiones expresamente aprobadas originan los cambios,
+pero deben incorporarse en todas las fuentes afectadas. Ningún documento
+prevalece fuera de su incumbencia; una incompatibilidad transversal detiene la
+parte afectada hasta armonizarla.
+
+`api/AGENTS.md` contiene reglas operativas comunes. El `AGENTS.md` más cercano
+especializa cómo trabajar dentro de su carpeta y prevalece sobre el raíz solo en
+detalles operativos de ese alcance. Ningún `AGENTS.md` modifica comportamiento,
+permisos, esquema o contrato normativo.
 
 Si dos fuentes se contradicen, la implementación afectada debe detenerse hasta obtener una decisión. No se elige por conveniencia técnica ni se modifica la documentación para justificar código incompatible.
 
@@ -348,6 +355,11 @@ No se adopta un bus de eventos interno durante el MVP. Las operaciones síncrona
 
 ## 9. Estructura de carpetas
 
+El siguiente árbol es la estructura objetivo del MVP, no una afirmación de que
+todos los archivos ya estén implementados. El scaffold puede contener módulos
+vacíos o carecer temporalmente de piezas futuras; una tarea solo crea las piezas
+necesarias para su alcance y conserva esta distribución.
+
 ```text
 api/
 ├── src/
@@ -358,7 +370,9 @@ api/
 │   │   ├── cors.js
 │   │   └── logger.js
 │   ├── routes/
-│   │   └── index.js
+│   │   ├── index.js
+│   │   ├── private.routes.js
+│   │   └── public.routes.js
 │   ├── modules/
 │   │   ├── auth/
 │   │   ├── resumen/
@@ -645,6 +659,17 @@ Ante una violación de unicidad, exclusión o integridad:
 
 La agenda y la rotación de sesiones requieren pruebas con solicitudes simultáneas reales.
 
+Estrategias aprobadas:
+
+- crear turnos o desactivar recursos bloquea paciente, prestador, servicio y
+  consultorio en orden estable antes de validar;
+- las transiciones de turno bloquean la fila del turno;
+- editar o finalizar informes usa versión optimista y `expectedVersion`;
+- incorporar participantes y enviar mensajes bloquea la conversación;
+- avanzar lectura bloquea la participación y compara `(created_at, id)`;
+- cambiar o desactivar al último administrador utiliza un advisory lock
+  transaccional común.
+
 ---
 
 ## 15. Fechas, horas y zona horaria
@@ -665,6 +690,9 @@ Reglas:
 - no utilizar el huso horario local del servidor como regla;
 - no concatenar manualmente fecha y hora para construir instantes;
 - tratar `desde` como inclusivo y `hasta` como exclusivo en intervalos de agenda.
+- ofrecer disponibilidad sobre una grilla de 15 minutos;
+- cuando se filtra por prestador y consultorio, calcular la intersección de
+  ambas disponibilidades.
 
 Las reglas de días y franjas horarias pertenecen al módulo Turnos y a su documentación especializada.
 
@@ -685,6 +713,10 @@ Las reglas de días y franjas horarias pertenecen al módulo Turnos y a su docum
 - revocación de sesión actual y de todas las sesiones;
 - login y refresh sujetos a rate limiting y controles de estado;
 - tokens sin DNI, email, teléfono ni datos clínicos.
+- refresh opaco `<sessionId>.<secret>` con secreto aleatorio de 256 bits;
+- digest SHA-256 vigente y anterior persistidos para rotación y detección de
+  reutilización inmediata;
+- consulta de sesión y usuario en PostgreSQL en cada request privada.
 
 El uso del DNI como credencial es una simplificación funcional y un riesgo aceptado del MVP. No debe degradarse almacenándolo o comparándolo como texto plano.
 
@@ -695,22 +727,22 @@ El uso del DNI como credencial es una simplificación funcional y un riesgo acep
 
 El refresh devuelve el usuario y los permisos vigentes, además del nuevo access token. La lista de permisos ayuda al frontend, pero no reemplaza la autorización del servidor.
 
-### 16.3 Decisiones de detalle pendientes
+### 16.3 Rotación, cookies y revocación
 
-No resolver sin aprobación:
+- refresh bloquea la fila de sesión y rota los digests atómicamente;
+- reutilizar el digest anterior revoca esa sesión;
+- una segunda renovación concurrente del mismo token se trata como
+  reutilización y obliga a iniciar sesión nuevamente;
+- consultar sesión y usuario en cada request hace inmediatos logout,
+  desactivación y cambios de acceso;
+- la cookie utiliza `HttpOnly`, `Path=/api/v1/auth`, sin `Domain`,
+  `SameSite=Lax` por defecto y `Secure` obligatorio en producción;
+- `SameSite=None` requiere `Secure` y configuración explícita;
+- operaciones de cookie validan `Origin` contra una allowlist;
+- el MVP no agrega un token CSRF adicional.
 
-- formato definitivo del refresh token;
-- algoritmo exacto para almacenar su hash;
-- estrategia de detección de reutilización;
-- alcance de la revocación cuando se detecta reutilización;
-- resolución de refreshes concurrentes legítimos;
-- consulta de sesión en cada request autenticada;
-- efecto inmediato de cambio de rol o desactivación sobre access tokens vigentes;
-- atributos finales de cookie según los dominios reales;
-- estrategia CSRF definitiva;
-- protección para evitar quedar sin administradores activos.
-
-La implementación de `auth` debe detenerse si depende de una de estas decisiones aún no aprobadas.
+Desactivar o cambiar el rol del último administrador activo se impide mediante
+una operación serializada en PostgreSQL.
 
 ---
 
@@ -824,7 +856,12 @@ La auditoría registra quién realizó una acción relevante, sobre qué recurso
 
 No es un duplicado del request ni del recurso. No almacena texto clínico, mensajes, notas internas, DNI, credenciales, tokens, nombres originales de archivos ni rutas absolutas.
 
-Cuando una auditoría forma parte de una operación exitosa, se escribe dentro de la misma transacción siempre que corresponda. El mecanismo definitivo para conservar intentos fallidos sin romper el rollback continúa pendiente.
+Cuando una auditoría forma parte de una operación exitosa, se escribe dentro de
+la misma transacción. La lectura clínica es fail-closed: si falla
+`INFORME_VISUALIZADO`, no se entrega el contenido. Los intentos fallidos se
+registran en una transacción independiente de mejor esfuerzo después del
+rollback; si esa escritura falla, se conserva la respuesta original y se emite
+un log técnico sanitizado.
 
 No auditar cada polling del contador de no leídos.
 
@@ -892,9 +929,10 @@ El filesystem no participa en transacciones PostgreSQL. Se utiliza compensación
 4. si no existe, conservar el estado correcto en PostgreSQL;
 5. registrar warning ante un fallo no crítico de limpieza.
 
-### 21.4 Producción pendiente
+### 21.4 Infraestructura productiva no bloqueante
 
-El proveedor final de despliegue no está decidido. Antes de producción debe confirmarse:
+El proveedor final de despliegue es deuda operativa no bloqueante para la
+implementación del MVP. Antes de producción debe confirmarse:
 
 - volumen persistente;
 - permisos de escritura;
@@ -1133,7 +1171,7 @@ No introducir estas soluciones mientras no exista un requerimiento aprobado.
 | Polling en mensajería | Resumen de no leídos sin contenido sensible. | Evaluar tiempo real por necesidad medida. |
 | Uploads locales | Servicio centralizado y volumen persistente. | Migrar si el proveedor o el volumen lo requieren. |
 | Una instalación por centro | Aislamiento operativo sencillo. | Analizar multi-tenancy como iniciativa independiente. |
-| Auditoría fallida | Auditoría exitosa comparte transacción; intentos fallidos pendientes. | Aprobar mecanismo fuera del rollback. |
+| Auditoría fallida | Éxitos atómicos, lectura clínica fail-closed e intentos fallidos de mejor esfuerzo fuera del rollback. | Revisar si el volumen exige outbox o cola. |
 
 ---
 
@@ -1176,7 +1214,7 @@ No crear endpoints, tablas o capas para estas funciones por analogía con otros 
 | ADR-007 | PostgreSQL 16+ y Sequelize 6 conforman la persistencia. |
 | ADR-008 | Las migraciones son la fuente de verdad; `sequelize.sync()` está prohibido. |
 | ADR-009 | Los modelos Sequelize y asociaciones se centralizan en infraestructura de base de datos. |
-| ADR-010 | Los services contienen negocio, policies, transacciones y proyecciones. |
+| ADR-010 | El módulo dueño contiene negocio, policies y proyecciones; su service orquesta transacciones y casos de uso. |
 | ADR-011 | UUID es el identificador estándar. |
 | ADR-012 | Instantes en UTC y agenda interpretada en `America/Argentina/Cordoba`. |
 | ADR-013 | Existe una instalación y una base independientes por centro. |
@@ -1186,11 +1224,13 @@ No crear endpoints, tablas o capas para estas funciones por analogía con otros 
 | ADR-017 | La integridad crítica se respalda en PostgreSQL. |
 | ADR-018 | Usuarios, pacientes y catálogos utilizan baja lógica; la historia no se elimina físicamente. |
 | ADR-019 | Los turnos no se reprograman; se cancela y crea uno nuevo. |
-| ADR-020 | Informes finalizados y mensajes enviados son inmutables. |
+| ADR-020 | Informes finalizados y mensajes enviados son inmutables; la edición y finalización de borradores usa versión optimista. |
 | ADR-021 | Las conversaciones solo son visibles para participantes. |
 | ADR-022 | Las imágenes se gestionan mediante endpoints separados y almacenamiento local abstraído. |
 | ADR-023 | Un turno puede utilizar cualquier servicio activo, aunque no sea habitual del prestador. |
-| ADR-024 | El proveedor de producción y su almacenamiento persistente permanecen pendientes. |
+| ADR-024 | El proveedor de producción y su almacenamiento persistente son deuda operativa no bloqueante antes del despliegue. |
+| ADR-025 | Solo crear un mensaje actualiza la actividad global de una conversación y desarchiva la conversación para sus receptores. |
+| ADR-026 | La disponibilidad usa intervalos de 15 minutos e interseca prestador y consultorio cuando ambos filtros están presentes. |
 
 ---
 
@@ -1226,6 +1266,6 @@ Una implementación respeta esta arquitectura cuando:
 - implementa uploads con almacenamiento persistente y compensación;
 - incluye pruebas unitarias y de integración relevantes;
 - mantiene contrato, matriz, modelo y código sincronizados;
-- no resuelve silenciosamente decisiones pendientes;
+- no resuelve silenciosamente incompatibilidades ni deuda técnica;
 - no incorpora alcance excluido ni abstracciones innecesarias.
 

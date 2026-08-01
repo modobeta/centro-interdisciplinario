@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Matriz de permisos, acceso por recurso, campo y auditoría — MVP
 
-**Versión documental:** 4.0  
+**Versión documental:** 4.1
 **Fecha:** 1 de agosto de 2026  
 **Carácter:** normativo para backend, frontend, pruebas y agentes de programación  
 **Contrato relacionado:** `docs/contrato-api.md`
@@ -31,7 +31,11 @@ Esta versión incorpora las decisiones consolidadas del contrato de API v4 y ree
 6. se incluyen Resumen, no leídos, selectores e imágenes;
 7. `activo` y `visiblePublicamente` son condiciones independientes.
 
-Si este documento contradice `docs/contrato-api.md`, debe detenerse la implementación y corregirse la documentación antes de programar. No se elige silenciosamente una interpretación.
+Este archivo es la autoridad exclusiva para rol, acción, alcance de filas,
+policy y campo visible o editable. `contrato-api.md` gobierna HTTP,
+`modelo-datos.md` persistencia y `arquitectura-backend.md` estructura técnica.
+Ante una incompatibilidad transversal se detiene la implementación y se
+armonizan las fuentes; ninguna prevalece fuera de su incumbencia.
 
 ---
 
@@ -85,8 +89,10 @@ Reglas transversales:
 - prevenir IDOR comprobando la relación con cada recurso;
 - aplicar proyecciones explícitas, no devolver modelos completos;
 - no asumir que un rol “superior” hereda todas las acciones o campos;
-- preferir `404` cuando el contrato ordena ocultar la existencia del recurso;
-- conservar el mismo criterio `403`/`404` para casos equivalentes;
+- responder `404` en todo acceso directo por UUID cuando el actor no puede
+  conocer el recurso;
+- reservar `403` para acciones, campos o filtros prohibidos sobre recursos
+  visibles;
 - no incluir en JWT datos clínicos, DNI, mensajes, informes ni notas;
 - la lista `permissions` de login y refresh ayuda al frontend, pero no reemplaza las policies del backend.
 
@@ -167,12 +173,17 @@ El resumen no devuelve diagnósticos, informes, mensajes, previews, observacione
 | Usuarios | Cargar, reemplazar o quitar foto | Global | No | No | No | Prohibido sobre sí mismo; endpoint multipart separado. |
 | Usuarios | Eliminar físicamente | No | No | No | No | No existe endpoint. |
 
+El último administrador activo no puede ser desactivado ni cambiado a otro rol.
+Ambas operaciones comparten una serialización transaccional. Cambiar un
+prestador a un rol no prestador cierra vínculos, elimina servicios habituales
+vigentes y bloquea sus borradores sin transferir autoría.
+
 ### 8.2 Campos de lectura
 
 | Campo o grupo | Administrador | Coordinación | Secretaría | Profesional | Proyección / condición |
 |---|:---:|:---:|:---:|:---:|---|
 | `id`, `nombre`, `apellido` | Sí | Sí | Sí | Sí | Todas las proyecciones autorizadas. |
-| `titulo`, `funcion`/`funcionPublica`, `fotoUrl` | Sí | Sí | Sí | Sí | Selector o directorio. |
+| `titulo`, `funcionPublica`, `fotoUrl` | Sí | Sí | Sí | Sí | Selector o directorio. |
 | `rol`, `especialidad` | Sí | Sí | Sí | Sí | Directorio; selector no los incluye. |
 | `activo` | Sí | Implícito `true` | Implícito `true` | Implícito `true` | Solo admin recibe estado administrativo real. |
 | `dni`, `email`, `telefono` | Sí | No | No | No | Proyección administrativa. |
@@ -246,7 +257,10 @@ Todos los roles que superen la policy del recurso reciben la misma ficha de deta
 | `activo` | Todos dentro de su scope | Admin/coordinación/secretaría por endpoint de estado | No aceptado en crear o editar. |
 | `createdAt`, `updatedAt` | Detalle autorizado | Nadie | Sistema. |
 
-Un paciente inactivo conserva la historia, pero no admite nuevos turnos, informes, vínculos ni conversaciones asociadas. Las conversaciones preexistentes pueden continuar entre sus participantes.
+Un paciente inactivo conserva la historia y sus vínculos activos, pero no
+admite nuevos turnos, informes, vínculos ni conversaciones asociadas. Las
+conversaciones preexistentes pueden continuar entre sus participantes. Un
+borrador preexistente puede continuar únicamente bajo las reglas de Informes.
 
 ---
 
@@ -311,7 +325,7 @@ Coordinación puede crear turnos propios o ajenos. Administrador y secretaría n
 
 | Campo | Administrador | Coordinación | Secretaría | Profesional | Regla |
 |---|:---:|:---:|:---:|:---:|---|
-| `pacienteId`, `profesionalId`, `servicioId`, `consultorioId` al crear | Sí | Sí | Sí | Propio | Profesional no puede forzar prestador ajeno. |
+| `pacienteId`, `prestadorId`, `servicioId`, `consultorioId` al crear | Sí | Sí | Sí | Propio | Profesional no puede forzar prestador ajeno. |
 | `fecha`, `horaInicio`, `duracionMinutos` al crear | Sí | Sí | Sí | Propio | Lunes a sábado, 08:00–21:00 y duración permitida. |
 | `observacionAdministrativa` | Sí | Sí | Sí | Propio | Crear o endpoint específico; turno no terminal al editar. |
 | `notasInternas` | No | Sí | No | Propio | Crear o endpoint específico. |
@@ -319,6 +333,9 @@ Coordinación puede crear turnos propios o ajenos. Administrador y secretaría n
 | `inicioAt`, `finAt`, actores y timestamps | No | No | No | No | Derivados por backend. |
 
 No se exige servicio habitual. PostgreSQL debe impedir solapamientos de paciente, prestador y consultorio.
+
+La disponibilidad usa comienzos cada 15 minutos. Cuando se informan prestador y
+consultorio, el resultado es la intersección de ambos.
 
 ---
 
@@ -339,6 +356,12 @@ No se exige servicio habitual. PostgreSQL debe impedir solapamientos de paciente
 | Generar PDF desde backend | No | No | No | No | Fuera del MVP; impresión se resuelve en frontend. |
 
 El administrador no puede crear informes. La secretaría puede leer título, resumen y contenido completo, pero no escribir. Estos permisos son deliberados.
+
+El profesional requiere vínculo activo incluso si es autor. Un paciente
+inactivo no habilita informes nuevos, pero permite continuar un borrador
+preexistente mientras se mantengan autoría y vínculo. Un tipo inactivo puede
+conservarse, no seleccionarse como reemplazo. Editar y finalizar exigen
+`expectedVersion` vigente.
 
 ### 13.2 Campos
 
@@ -383,7 +406,7 @@ Crear una conversación asociada a un paciente no exige vínculo con él. El pac
 
 | Campo o grupo | Lista de conversaciones | Detalle | Mensajes | Resumen no leídas |
 |---|:---:|:---:|:---:|:---:|
-| `id`, `titulo`, `asunto`, `participantes`, `updatedAt` | Sí | Sí | Según proyección | `id`, `titulo`, `participants`, `updatedAt` |
+| `id`, `titulo`, `asunto`, `participantes`, `updatedAt` | Sí | Sí | Según proyección | `id`, `titulo`, `participantes`, `updatedAt` |
 | `paciente` | Sí, nullable | Sí, nullable | No | No |
 | `ultimoMensaje.preview` | Sí, solo participante | No | No | Nunca |
 | `noLeidos`, `archivada` | Sí, estado individual | Sí | No | Solo contador agregado |
@@ -391,6 +414,11 @@ Crear una conversación asociada a un paciente no exige vínculo con él. El pac
 | `mensaje.contenido` | Solo preview limitado | No | Sí, solo participante | Nunca |
 
 El nuevo participante accede al historial completo, pero el último mensaje existente se establece como punto inicial de lectura para que el historial previo no compute como no leído.
+
+La incorporación es atómica: si el lote contiene un participante existente no
+se agrega a nadie. Un mensaje nuevo desarchiva la conversación para sus
+receptores y actualiza la actividad global; lectura, archivo y desarchivo no la
+actualizan.
 
 ---
 
@@ -643,17 +671,45 @@ No concentrar toda la autorización en un único `if` por rol ni duplicarla de f
 
 ### 19.3 Lista `permissions` de sesión
 
-La respuesta de login y refresh debe derivarse de esta matriz y usar los mismos identificadores estables que el frontend. La nomenclatura vigente en el contrato y frontend usa inglés con puntos, por ejemplo:
+La respuesta de login y refresh se deriva de esta tabla. Los identificadores son
+estables, están en inglés con puntos y constituyen el catálogo completo del MVP.
 
-```text
-patients.create
-patients.readLinked
-patients.deactivate
-appointments.manageOwn
-reports.createLinked
-```
+| Permission | Admin | Coord. | Secr. | Prof. | Scope | Policy y proyección |
+|---|:---:|:---:|:---:|:---:|---|---|
+| `summary.read` | Sí | Sí | Sí | Sí | Del rol | Resumen agregado sin datos sensibles. |
+| `users.readDirectory` | Sí | Sí | Sí | Sí | Global activo | Policy de proyección; `directory` o `selector`. |
+| `users.manage` | Sí | No | No | No | Global | Usuario visible; proyección administrativa y sin automodificación. |
+| `users.manageServices` | Sí | Sí | Sí | No | Global | Usuario prestador; proyección de asignaciones. |
+| `patients.readAll` | Sí | Sí | Sí | No | Global | Policy de paciente; proyección permitida por rol. |
+| `patients.readLinked` | No | No | No | Sí | Vinculado | Vínculo activo; proyección profesional. |
+| `patients.create` | Sí | Sí | Sí | Sí | Del actor | Policy de creación; ficha autorizada. |
+| `patients.updateAll` | Sí | Sí | Sí | No | Global | Paciente visible; campos editables del rol. |
+| `patients.updateLinked` | No | No | No | Sí | Vinculado | Vínculo activo; campos profesionales. |
+| `patients.manageState` | Sí | Sí | Sí | No | Global | Policy de estado; proyección de ficha. |
+| `patients.manageLinks` | Sí | Sí | Sí | No | Global | Policy de vínculos; proyección de relación. |
+| `patients.linkFromLinked` | No | No | No | Sí | Vinculado | Actor ya vinculado; proyección de relación. |
+| `appointments.readAll` | Sí | Sí | Sí | No | Global | Policy de turno; detalle filtrado por campos. |
+| `appointments.manageAll` | Sí | Sí | Sí | No | Global | Policy de acción y estado; detalle filtrado. |
+| `appointments.manageOwn` | No | No | No | Sí | Propio | Prestador responsable; detalle profesional. |
+| `appointments.readAvailability` | Sí | Sí | Sí | Sí | Autorizado | Filtros dentro del alcance; proyección de slots. |
+| `appointments.readInternalNotesAll` | No | Sí | No | No | Global | Turno visible; incluye notas internas. |
+| `appointments.readInternalNotesOwn` | No | No | No | Sí | Propio | Prestador responsable; incluye notas internas. |
+| `reports.readAll` | Sí | Sí | Sí | No | Global | Policy de informe; contenido completo autorizado. |
+| `reports.readLinked` | No | No | No | Sí | Vinculado | Vínculo activo; informe visible. |
+| `reports.createAny` | No | Sí | No | No | Global | Autor propio y paciente válido; borrador. |
+| `reports.createLinked` | No | No | No | Sí | Vinculado | Vínculo activo; borrador propio. |
+| `reports.manageOwnDraft` | No | Sí | No | Sí | Autor | Borrador editable, vínculo cuando aplica y versión esperada. |
+| `conversations.manageOwn` | Sí | Sí | Sí | Sí | Participante | Participación activa; proyección de conversación o mensaje. |
+| `services.read` | Sí | Sí | Sí | Sí | Global activo | Proyección autenticada de servicio. |
+| `services.manage` | Sí | No | No | No | Global | Policy administrativa; proyección completa. |
+| `catalogs.read` | Sí | Sí | Sí | Sí | Global activo | Proyección autenticada del catálogo. |
+| `catalogs.manage` | Sí | No | No | No | Global | Policy administrativa; proyección completa. |
+| `audit.read` | Sí | No | No | No | Global | Policy administrativa; metadata sanitizada. |
 
-No mezclar esos identificadores con una segunda nomenclatura en español con dos puntos. Antes de implementar el catálogo completo de strings, debe centralizarse una única lista compartida entre contrato, mocks, frontend y backend. La ausencia de un string en el cliente no puede ampliar ni reducir la policy del servidor.
+`permissions` habilita navegación y controles de interfaz; nunca concede acceso
+por sí sola. Scope, estado, relación, autoría, participación y campos continúan
+evaluándose en el backend. No crear una segunda nomenclatura ni agregar strings
+fuera de esta tabla sin actualizar contrato, cliente, mocks y pruebas.
 
 ---
 
@@ -680,7 +736,7 @@ Casos críticos obligatorios:
 
 - un profesional solo lista pacientes vinculados;
 - un profesional vinculado puede sumar otro prestador, pero no desvincularlo;
-- un profesional no puede forzar `profesionalId` ajeno en un turno;
+- un profesional no puede forzar `prestadorId` ajeno en un turno;
 - cualquier servicio activo puede usarse en turno aunque no sea habitual;
 - un profesional no puede administrar servicios habituales;
 - administrador y secretaría nunca reciben `notasInternas`;

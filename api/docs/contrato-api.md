@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Contrato de API REST — MVP
 
-**Versión documental:** 4.0  
+**Versión documental:** 4.1
 **Fecha:** 1 de agosto de 2026  
 **Base path:** `/api/v1`  
 **Formato:** JSON UTF-8  
@@ -31,7 +31,18 @@ Es normativo para backend, frontend, pruebas y agentes de programación. Debe le
 
 Las migraciones son la fuente de verdad del esquema físico. Los schemas Joi deben implementar este contrato sin ampliar silenciosamente entradas, permisos ni campos de salida.
 
-### 1.1 Decisiones consolidadas por esta versión
+### 1.1 Autoridad documental
+
+Este archivo es la autoridad exclusiva para método, URL, entrada, salida, status
+HTTP y código funcional. `matriz-permisos.md` gobierna autorización y campos,
+`modelo-datos.md` gobierna persistencia y `arquitectura-backend.md` gobierna la
+estructura técnica. Ninguna fuente prevalece fuera de su incumbencia.
+
+Si una decisión transversal no puede expresarse de manera compatible en todas
+las fuentes afectadas, se detiene el cambio y se corrige la documentación antes
+de implementar.
+
+### 1.2 Decisiones consolidadas por esta versión
 
 Esta versión incorpora y reemplaza las reglas incompatibles de documentos anteriores:
 
@@ -202,6 +213,11 @@ Convención uniforme:
 
 Un filtro nunca amplía el alcance autorizado. Cuando el actor intenta forzar un alcance ajeno, la API responde `403 FORBIDDEN_FILTER`; no ignora silenciosamente el filtro.
 
+Para acceso directo por UUID, un actor que no puede conocer el recurso recibe
+`404` con el mismo código utilizado para un recurso inexistente. `403` se reserva
+para acciones, campos o filtros prohibidos sobre recursos cuya existencia el
+actor sí está autorizado a conocer.
+
 ### 2.11 Tipos y serialización
 
 - IDs: UUID en minúsculas.
@@ -226,6 +242,25 @@ Para crear turnos, `fecha` y `horaInicio` se interpretan en `America/Argentina/C
 - rutas físicas del servidor.
 
 El DNI solo aparece en proyecciones administrativas de usuarios y en proyecciones autorizadas de pacientes.
+
+### 2.13 Reglas comunes de endpoints
+
+- Todo parámetro `:id`, `:pacienteId`, `:usuarioId` o equivalente es UUID.
+- Los bodies JSON rechazan propiedades no documentadas.
+- Si una sección no documenta query o body, el endpoint no los admite; cualquier
+  entrada adicional produce `400 VALIDATION_ERROR`.
+- `GET` es seguro e idempotente. `PUT` y los `PATCH` que fijan explícitamente un
+  estado son idempotentes en sus efectos, aunque una repetición puede responder
+  un conflicto de estado o versión. `POST` no es idempotente salvo indicación
+  expresa. `DELETE` solo lo es cuando su sección lo declara.
+- Los errores de la sección 2.9 aplican por referencia y no se repiten en cada
+  endpoint.
+- Las tablas de errores de cada sección contienen los errores específicos de
+  ese endpoint; no deben inferirse códigos por analogía.
+- Los endpoints privados por ID aplican la política de ocultamiento `404` de la
+  sección 2.10.
+- Una respuesta `204` carece siempre de body; cualquier operación que devuelve
+  una representación utiliza `200` o `201`.
 
 ---
 
@@ -268,17 +303,80 @@ La respuesta del backend puede reducir filas y campos según RBAC, policy de rec
 
 ### 4.2 Privados
 
-| Dominio | Endpoints |
-|---|---|
-| Sesión | `POST /auth/logout`, `POST /auth/logout-todas` |
-| Resumen | `GET /resumen` |
-| Usuarios | `GET/POST /usuarios`, `GET/PUT /usuarios/:id`, estado, acceso, foto y servicios habituales |
-| Pacientes | `GET/POST /pacientes`, `GET/PUT /pacientes/:id`, estado y vínculos |
-| Turnos | listado, disponibilidad, detalle, creación y acciones de estado/campos |
-| Informes | listado, detalle, creación, edición y finalización |
-| Mensajería | conversaciones, mensajes, participantes, lectura y archivo |
-| Catálogos | servicios, consultorios, asuntos y tipos de informe |
-| Auditoría | `GET /auditoria` |
+Cada combinación de método y ruta aparece una sola vez en este inventario.
+
+| Dominio | Método | Ruta |
+|---|---|---|
+| Sesión | `POST` | `/auth/logout` |
+| Sesión | `POST` | `/auth/logout-todas` |
+| Resumen | `GET` | `/resumen` |
+| Usuarios | `GET` | `/usuarios` |
+| Usuarios | `POST` | `/usuarios` |
+| Usuarios | `GET` | `/usuarios/:id` |
+| Usuarios | `PUT` | `/usuarios/:id` |
+| Usuarios | `PATCH` | `/usuarios/:id/estado` |
+| Usuarios | `PATCH` | `/usuarios/:id/restablecer-acceso` |
+| Usuarios | `PUT` | `/usuarios/:id/foto` |
+| Usuarios | `DELETE` | `/usuarios/:id/foto` |
+| Usuarios | `GET` | `/usuarios/:id/servicios` |
+| Usuarios | `POST` | `/usuarios/:id/servicios` |
+| Usuarios | `DELETE` | `/usuarios/:id/servicios/:servicioId` |
+| Pacientes | `GET` | `/pacientes` |
+| Pacientes | `POST` | `/pacientes` |
+| Pacientes | `GET` | `/pacientes/:id` |
+| Pacientes | `PUT` | `/pacientes/:id` |
+| Pacientes | `PATCH` | `/pacientes/:id/estado` |
+| Vínculos | `GET` | `/pacientes/:pacienteId/vinculos` |
+| Vínculos | `POST` | `/pacientes/:pacienteId/vinculos` |
+| Vínculos | `PATCH` | `/pacientes/:pacienteId/vinculos/:usuarioId/desvincular` |
+| Turnos | `GET` | `/turnos` |
+| Turnos | `GET` | `/turnos/disponibilidad` |
+| Turnos | `GET` | `/turnos/:id` |
+| Turnos | `POST` | `/turnos` |
+| Turnos | `PATCH` | `/turnos/:id/confirmar` |
+| Turnos | `PATCH` | `/turnos/:id/cancelar` |
+| Turnos | `PATCH` | `/turnos/:id/completar` |
+| Turnos | `PATCH` | `/turnos/:id/ausente` |
+| Turnos | `PATCH` | `/turnos/:id/observacion-administrativa` |
+| Turnos | `PATCH` | `/turnos/:id/notas-internas` |
+| Informes | `GET` | `/informes` |
+| Informes | `GET` | `/informes/:id` |
+| Informes | `POST` | `/informes` |
+| Informes | `PUT` | `/informes/:id` |
+| Informes | `PATCH` | `/informes/:id/finalizar` |
+| Mensajería | `GET` | `/conversaciones/no-leidas/resumen` |
+| Mensajería | `GET` | `/conversaciones` |
+| Mensajería | `POST` | `/conversaciones` |
+| Mensajería | `GET` | `/conversaciones/:id` |
+| Mensajería | `GET` | `/conversaciones/:id/mensajes` |
+| Mensajería | `POST` | `/conversaciones/:id/mensajes` |
+| Mensajería | `POST` | `/conversaciones/:id/participantes` |
+| Mensajería | `PATCH` | `/conversaciones/:id/leida` |
+| Mensajería | `PATCH` | `/conversaciones/:id/archivar` |
+| Mensajería | `PATCH` | `/conversaciones/:id/desarchivar` |
+| Servicios | `GET` | `/servicios` |
+| Servicios | `GET` | `/servicios/:id` |
+| Servicios | `POST` | `/servicios` |
+| Servicios | `PUT` | `/servicios/:id` |
+| Servicios | `PATCH` | `/servicios/:id/estado` |
+| Servicios | `PUT` | `/servicios/:id/imagen` |
+| Servicios | `DELETE` | `/servicios/:id/imagen` |
+| Consultorios | `GET` | `/consultorios` |
+| Consultorios | `GET` | `/consultorios/:id` |
+| Consultorios | `POST` | `/consultorios` |
+| Consultorios | `PUT` | `/consultorios/:id` |
+| Consultorios | `PATCH` | `/consultorios/:id/estado` |
+| Asuntos | `GET` | `/asuntos` |
+| Asuntos | `GET` | `/asuntos/:id` |
+| Asuntos | `POST` | `/asuntos` |
+| Asuntos | `PUT` | `/asuntos/:id` |
+| Asuntos | `PATCH` | `/asuntos/:id/estado` |
+| Tipos de informe | `GET` | `/tipos-informe` |
+| Tipos de informe | `GET` | `/tipos-informe/:id` |
+| Tipos de informe | `POST` | `/tipos-informe` |
+| Tipos de informe | `PUT` | `/tipos-informe/:id` |
+| Tipos de informe | `PATCH` | `/tipos-informe/:id/estado` |
+| Auditoría | `GET` | `/auditoria` |
 
 Las rutas de este documento omiten `/api/v1` en títulos posteriores para facilitar la lectura.
 
@@ -318,19 +416,40 @@ Las rutas de este documento omiten `/api/v1` en títulos posteriores para facili
       "rol": "profesional",
       "titulo": "Lic.",
       "especialidad": "Psicopedagogía",
-      "funcion": "Psicopedagoga clínica",
+      "funcionPublica": "Psicopedagoga clínica",
       "fotoUrl": "/uploads/usuarios/uuid.webp"
     },
     "permissions": [
+      "summary.read",
+      "users.readDirectory",
       "patients.readLinked",
+      "patients.create",
+      "patients.updateLinked",
+      "patients.linkFromLinked",
       "appointments.manageOwn",
-      "reports.createLinked"
+      "appointments.readAvailability",
+      "appointments.readInternalNotesOwn",
+      "reports.readLinked",
+      "reports.createLinked",
+      "reports.manageOwnDraft",
+      "conversations.manageOwn",
+      "services.read",
+      "catalogs.read"
     ]
   }
 }
 ```
 
 El refresh token se establece mediante `Set-Cookie` y no aparece en el JSON.
+Es opaco y tiene el formato `<sessionId>.<secret>`, donde `secret` contiene 256
+bits aleatorios codificados en base64url. La base persiste únicamente su digest
+SHA-256 vigente y el digest inmediatamente anterior.
+
+La cookie se emite con `HttpOnly`, `Path=/api/v1/auth`, sin `Domain` y
+`SameSite=Lax` por defecto. En producción siempre utiliza `Secure`.
+`SameSite=None` solo es válido junto con `Secure`. Login, refresh y logout
+validan `Origin` contra una allowlist configurada; el MVP no incorpora un token
+CSRF adicional.
 
 ### Errores
 
@@ -345,7 +464,15 @@ El refresh token se establece mediante `Set-Cookie` y no aparece en el JSON.
 **Acceso:** público con cookie de refresh.  
 **Body:** ninguno.
 
-Valida sesión y usuario, rota el refresh token y devuelve el contexto vigente. Esto hace efectivo un cambio de permisos sin esperar un nuevo login.
+Valida sesión y usuario, bloquea la fila de sesión, rota el refresh token y
+devuelve el contexto vigente. La reutilización del digest inmediatamente
+anterior revoca la sesión y responde `401 REFRESH_REUTILIZADO`. Cualquier otro
+digest incorrecto responde `401 REFRESH_INVALIDO` sin revocar una sesión por
+mera coincidencia de `sessionId`.
+
+Todos los endpoints privados consultan la sesión y el usuario en PostgreSQL.
+Logout, desactivación y cambios de acceso son efectivos desde el commit y no
+esperan al vencimiento del access token.
 
 ### Respuesta `200`
 
@@ -359,6 +486,7 @@ Misma estructura de `data` que login: `accessToken`, `user` y `permissions`. Tam
 | `401` | `SESION_REVOCADA` |
 | `401` | `SESION_EXPIRADA` |
 | `401` | `USUARIO_INACTIVO` |
+| `401` | `REFRESH_REUTILIZADO` |
 
 ## 5.3 `POST /auth/logout`
 
@@ -433,7 +561,7 @@ Ningún usuario puede modificar su propia cuenta mediante endpoints administrati
   "nombre": "Ana",
   "apellido": "Pérez",
   "titulo": "Lic.",
-  "funcion": "Psicopedagoga clínica",
+  "funcionPublica": "Psicopedagoga clínica",
   "fotoUrl": "/uploads/usuarios/uuid.webp"
 }
 ```
@@ -578,7 +706,14 @@ Administrador recibe proyección administrativa. El resto recibe directorio solo
 
 El body contiene la misma estructura administrativa de creación. Es un reemplazo completo de campos editables; no acepta `fotoUrl`, `activo`, hashes ni sesiones.
 
-Si cambia DNI, el backend recalcula la credencial derivada y revoca todas las sesiones. Si cambia el rol desde prestador a no prestador, verifica turnos futuros y cierra relaciones según la matriz.
+Si cambia DNI, el backend recalcula la credencial derivada y revoca todas las
+sesiones. Si cambia el rol desde prestador a no prestador, bloquea la operación
+cuando existen turnos futuros, cierra vínculos activos, elimina asignaciones
+vigentes de servicios habituales y deja bloqueados los borradores del autor sin
+reasignarlos. La operación completa es transaccional.
+
+Cambiar el rol del último administrador activo está prohibido y se serializa
+con la desactivación administrativa.
 
 ### Respuesta `200`
 
@@ -592,6 +727,7 @@ Si cambia DNI, el backend recalcula la credencial derivada y revoca todas las se
 | `409` | `USUARIO_EMAIL_DUPLICADO` |
 | `409` | `USUARIO_DNI_DUPLICADO` |
 | `409` | `USUARIO_TIENE_TURNOS_FUTUROS` |
+| `409` | `ULTIMO_ADMINISTRADOR_REQUERIDO` |
 | `422` | `ADMINISTRADOR_NO_PUBLICABLE` |
 
 ## 7.6 `PATCH /usuarios/:id/estado`
@@ -615,8 +751,11 @@ Si cambia DNI, el backend recalcula la credencial derivada y revoca todas las se
 | `404` | `USUARIO_NO_ENCONTRADO` |
 | `409` | `USUARIO_TIENE_TURNOS_FUTUROS` |
 | `409` | `USUARIO_ESTADO_SIN_CAMBIOS` |
+| `409` | `ULTIMO_ADMINISTRADOR_REQUERIDO` |
 
-Al desactivar se revocan sesiones y se cierran vínculos activos; se conserva el historial.
+Al desactivar se revocan sesiones y se cierran vínculos activos; se conserva el
+historial. La verificación del último administrador se ejecuta en la misma
+operación serializada.
 
 ## 7.7 `PATCH /usuarios/:id/restablecer-acceso`
 
@@ -840,10 +979,10 @@ Envelope paginado de proyecciones resumidas.
 
 | HTTP | Código |
 |---:|---|
-| `403` | `PACIENTE_ACCESO_DENEGADO` |
 | `404` | `PACIENTE_NO_ENCONTRADO` |
 
-Cuando la policy de ocultamiento de recurso se aplique, el backend puede responder `404` en lugar de `403`; debe hacerlo de forma consistente para la misma clase de acceso.
+Un profesional no vinculado recibe el mismo `404 PACIENTE_NO_ENCONTRADO` que
+un UUID inexistente.
 
 ## 8.5 `POST /pacientes`
 
@@ -928,7 +1067,6 @@ Actualiza paciente y tutor existente en una transacción; nunca crea un segundo 
 
 | HTTP | Código |
 |---:|---|
-| `403` | `PACIENTE_ACCESO_DENEGADO` |
 | `404` | `PACIENTE_NO_ENCONTRADO` |
 | `409` | `PACIENTE_DNI_DUPLICADO` |
 | `422` | `FECHA_NACIMIENTO_INVALIDA` |
@@ -955,7 +1093,9 @@ Actualiza paciente y tutor existente en una transacción; nunca crea un segundo 
 | `409` | `PACIENTE_TIENE_TURNOS_FUTUROS` |
 | `409` | `PACIENTE_ESTADO_SIN_CAMBIOS` |
 
-Al reactivar no se reabren vínculos históricos.
+Al desactivar se conservan los vínculos existentes para continuidad histórica,
+pero el paciente no admite turnos, informes, vínculos o conversaciones nuevas.
+Al reactivar no se reabren vínculos históricos ni se reconstruyen relaciones.
 
 ---
 
@@ -1003,7 +1143,6 @@ Respuesta no paginada con proyecciones de vínculo.
 
 | HTTP | Código |
 |---:|---|
-| `403` | `PACIENTE_ACCESO_DENEGADO` |
 | `404` | `PACIENTE_NO_ENCONTRADO` |
 
 ## 9.3 `POST /pacientes/:pacienteId/vinculos`
@@ -1181,6 +1320,11 @@ Envelope paginado de eventos ordenados por `inicioAt`.
 | `consultorioId` | UUID | Cond. | Se exige este o `prestadorId`. |
 | `duracionMinutos` | entero | Sí | `30`, `45`, `60`, `90` o `120`. |
 
+Los comienzos se generan sobre una grilla de 15 minutos. Si se informan
+`prestadorId` y `consultorioId`, cada intervalo devuelto es la intersección de
+la disponibilidad de ambos recursos. Si se informa solo uno, se evalúa
+únicamente ese recurso. La query no infiere prestadores ni consultorios.
+
 ### Respuesta `200`
 
 ```json
@@ -1225,7 +1369,6 @@ La disponibilidad es orientativa. La creación continúa sujeta a constraints de
 
 | HTTP | Código |
 |---:|---|
-| `403` | `TURNO_ACCESO_DENEGADO` |
 | `404` | `TURNO_NO_ENCONTRADO` |
 
 ## 10.7 `POST /turnos`
@@ -1237,7 +1380,7 @@ La disponibilidad es orientativa. La creación continúa sujeta a constraints de
 ```json
 {
   "pacienteId": "uuid",
-  "profesionalId": "uuid",
+  "prestadorId": "uuid",
   "servicioId": "uuid",
   "consultorioId": "uuid",
   "fecha": "2026-08-01",
@@ -1248,14 +1391,15 @@ La disponibilidad es orientativa. La creación continúa sujeta a constraints de
 }
 ```
 
-`profesionalId` conserva el nombre contractual v1 por compatibilidad; representa al prestador responsable, que puede tener rol `profesional` o `coordinacion`.
+`prestadorId` representa al responsable del turno, que puede tener rol
+`profesional` o `coordinacion`. No se admiten alias heredados para este campo.
 
 ### Campos
 
 | Campo | Tipo | Req. | Regla |
 |---|---|:---:|---|
 | `pacienteId` | UUID | Sí | Paciente activo. |
-| `profesionalId` | UUID | Sí | Prestador activo. |
+| `prestadorId` | UUID | Sí | Prestador activo. |
 | `servicioId` | UUID | Sí | Cualquier servicio activo. No requiere asociación habitual. |
 | `consultorioId` | UUID | Sí | Consultorio activo. |
 | `fecha` | fecha | Sí | No pasada; lunes a sábado. |
@@ -1266,7 +1410,7 @@ La disponibilidad es orientativa. La creación continúa sujeta a constraints de
 
 ### Reglas del actor
 
-- Profesional: `profesionalId` debe ser su propio ID y el paciente debe estar vinculado.
+- Profesional: `prestadorId` debe ser su propio ID y el paciente debe estar vinculado.
 - Coordinación: puede crear turnos propios o ajenos; crea vínculo automático si falta.
 - Administrador y secretaría: pueden crear para cualquier prestador activo; crean vínculo automático si falta.
 - El servicio solo necesita existir y estar activo.
@@ -1288,9 +1432,10 @@ La disponibilidad es orientativa. La creación continúa sujeta a constraints de
 | `404` | `PRESTADOR_NO_ENCONTRADO` |
 | `404` | `SERVICIO_NO_ENCONTRADO` |
 | `404` | `CONSULTORIO_NO_ENCONTRADO` |
-| `409` | `TURNO_CONFLICTO_PROFESIONAL` |
+| `409` | `TURNO_CONFLICTO_PRESTADOR` |
 | `409` | `TURNO_CONFLICTO_PACIENTE` |
 | `409` | `TURNO_CONFLICTO_CONSULTORIO` |
+| `409` | `TURNO_CONFLICTO_HORARIO` |
 | `422` | `TURNO_HORARIO_INVALIDO` |
 | `422` | `TURNO_DURACION_INVALIDA` |
 | `422` | `PACIENTE_INACTIVO` |
@@ -1299,6 +1444,11 @@ La disponibilidad es orientativa. La creación continúa sujeta a constraints de
 | `422` | `CONSULTORIO_INACTIVO` |
 
 `SERVICIO_NO_ASIGNADO` no existe en este endpoint.
+
+Los tres códigos específicos se utilizan cuando la causa concurrente es única
+y determinable. Si existen varios solapamientos simultáneos o PostgreSQL no
+permite atribuir uno de forma estable, se responde
+`409 TURNO_CONFLICTO_HORARIO`.
 
 ## 10.8 `PATCH /turnos/:id/confirmar`
 
@@ -1444,6 +1594,7 @@ El valor puede ser `null`. Solo se modifica en turnos no terminales.
     "nombre": "Informe evolutivo"
   },
   "estado": "borrador",
+  "version": 1,
   "fechaEmision": null,
   "createdAt": "2026-08-01T12:00:00.000Z",
   "updatedAt": "2026-08-01T12:00:00.000Z",
@@ -1477,6 +1628,7 @@ El listado no devuelve `contenido`.
   "resumen": "Síntesis del período.",
   "contenido": "Contenido completo...",
   "estado": "borrador",
+  "version": 1,
   "fechaEmision": null,
   "createdAt": "2026-08-01T12:00:00.000Z",
   "updatedAt": "2026-08-01T12:00:00.000Z",
@@ -1517,11 +1669,14 @@ Envelope paginado de proyecciones resumidas.
 
 `data` contiene la proyección de detalle. Toda lectura exitosa se audita sin copiar título, resumen ni contenido.
 
+La lectura de detalle y el evento `INFORME_VISUALIZADO` forman una unidad de
+seguridad. Si la auditoría no puede persistirse, la API responde
+`500 INTERNAL_ERROR` y no entrega título, resumen ni contenido.
+
 ### Errores
 
 | HTTP | Código |
 |---:|---|
-| `403` | `INFORME_ACCESO_DENEGADO` |
 | `404` | `INFORME_NO_ENCONTRADO` |
 
 ## 11.5 `POST /informes`
@@ -1573,11 +1728,18 @@ Profesional requiere vínculo activo. Coordinación puede crear sobre cualquier 
   "tipoInformeId": "uuid",
   "titulo": "Informe evolutivo",
   "resumen": "Síntesis actualizada.",
-  "contenido": "Contenido actualizado..."
+  "contenido": "Contenido actualizado...",
+  "expectedVersion": 1
 }
 ```
 
-No permite cambiar paciente, autor ni estado.
+No permite cambiar paciente, autor ni estado. `expectedVersion` es obligatorio
+y no se persiste. Si el tipo actual quedó inactivo, puede conservarse enviando
+su mismo ID, pero no reemplazarse por otro tipo inactivo.
+
+Un paciente inactivo no admite informes nuevos. Un borrador preexistente puede
+editarse si el autor continúa activo y, para un profesional, conserva vínculo
+activo con el paciente.
 
 ### Respuesta `200`
 
@@ -1588,17 +1750,27 @@ No permite cambiar paciente, autor ni estado.
 | HTTP | Código |
 |---:|---|
 | `403` | `INFORME_NO_ES_AUTOR` |
+| `403` | `INFORME_PACIENTE_NO_VINCULADO` |
 | `404` | `INFORME_NO_ENCONTRADO` |
 | `409` | `INFORME_FINALIZADO` |
 | `409` | `INFORME_AUTOR_INACTIVO` |
+| `409` | `INFORME_VERSION_CONFLICTO` |
 | `422` | `TIPO_INFORME_INACTIVO` |
 
 ## 11.7 `PATCH /informes/:id/finalizar`
 
-**Acceso:** solo autor activo.  
-**Body:** ninguno.
+**Acceso:** solo autor activo.
+
+```json
+{
+  "expectedVersion": 1
+}
+```
 
 Transición: `borrador → finalizado`. Completa `fechaEmision` y vuelve el recurso inmutable.
+Un paciente inactivo no impide finalizar un borrador preexistente si el autor
+conserva las demás condiciones de acceso. Un tipo de informe inactivo puede
+conservarse para esta finalización.
 
 ### Respuesta `200`
 
@@ -1609,9 +1781,11 @@ Transición: `borrador → finalizado`. Completa `fechaEmision` y vuelve el recu
 | HTTP | Código |
 |---:|---|
 | `403` | `INFORME_NO_ES_AUTOR` |
+| `403` | `INFORME_PACIENTE_NO_VINCULADO` |
 | `404` | `INFORME_NO_ENCONTRADO` |
 | `409` | `INFORME_FINALIZADO` |
 | `409` | `INFORME_AUTOR_INACTIVO` |
+| `409` | `INFORME_VERSION_CONFLICTO` |
 
 No existe eliminación de informes ni generación de PDF en el backend del MVP.
 
@@ -1656,7 +1830,9 @@ Solo los participantes acceden a una conversación. No hay bypass para administr
 }
 ```
 
-`paciente` y `ultimoMensaje` pueden ser `null`. El preview solo se entrega a participantes y nunca se incluye en el resumen de topbar.
+`paciente` y `ultimoMensaje` pueden ser `null`. El preview contiene como máximo
+120 caracteres, solo se entrega a participantes y nunca se incluye en el
+resumen de topbar.
 
 ## 12.2 Proyección de mensaje
 
@@ -1696,7 +1872,7 @@ Solo los participantes acceden a una conversación. No hay bypass para administr
         "id": "uuid",
         "titulo": "Seguimiento de Juan",
         "updatedAt": "2026-08-01T12:00:00.000Z",
-        "participants": ["Valentina Ríos", "Carla Domínguez"]
+        "participantes": ["Valentina Ríos", "Carla Domínguez"]
       }
     ]
   }
@@ -1748,7 +1924,7 @@ Envelope paginado de proyecciones resumidas.
 | `pacienteId` | UUID/null | No | Paciente activo si se informa. |
 | `titulo` | string | Sí | Máximo 200. |
 | `participanteIds` | UUID[] | Sí | Al menos un usuario distinto del creador; sin duplicados. |
-| `mensajeInicial` | string | Sí | Texto plano no vacío. |
+| `mensajeInicial` | string | Sí | Texto plano; 1 a 4.000 caracteres. |
 
 No se restringe la selección de participantes por vínculo con pacientes. Creador, participantes, conversación, primer mensaje, lectura inicial y auditoría se confirman en una transacción.
 
@@ -1771,6 +1947,7 @@ No se restringe la selección de participantes por vínculo con pacientes. Cread
 |---:|---|
 | `404` | `ASUNTO_NO_ENCONTRADO` |
 | `404` | `PACIENTE_NO_ENCONTRADO` |
+| `404` | `USUARIO_NO_ENCONTRADO` |
 | `422` | `CONVERSACION_SIN_DESTINATARIOS` |
 | `422` | `PARTICIPANTE_INACTIVO` |
 | `422` | `PACIENTE_INACTIVO` |
@@ -1837,7 +2014,15 @@ Se utiliza `404` para no revelar conversaciones a no participantes.
 }
 ```
 
-Cuando no hay más resultados, `nextCursor` es `null` y `hasMore` es `false`. Los mensajes se devuelven del más reciente al más antiguo.
+Cuando no hay más resultados, `nextCursor` es `null` y `hasMore` es `false`. Los
+mensajes se devuelven del más reciente al más antiguo con orden estable
+`(createdAt DESC, id DESC)`.
+
+### Error específico
+
+| HTTP | Código |
+|---:|---|
+| `404` | `CONVERSACION_NO_ENCONTRADA` |
 
 ## 12.8 `POST /conversaciones/:id/mensajes`
 
@@ -1849,9 +2034,14 @@ Cuando no hay más resultados, `nextCursor` es `null` y `hasMore` es `false`. Lo
 }
 ```
 
+`contenido` admite entre 1 y 4.000 caracteres después de recortar extremos.
+
 ### Respuesta `201`
 
-`data` contiene el mensaje creado. El mensaje es inmutable.
+`data` contiene el mensaje creado. El mensaje es inmutable. La operación
+actualiza `conversaciones.updatedAt`, desarchiva la conversación para los demás
+participantes y hace que el mensaje compute como no leído para ellos. No cambia
+el estado de archivo del remitente.
 
 ### Errores
 
@@ -1888,11 +2078,16 @@ Cuando no hay más resultados, `nextCursor` es `null` y `hasMore` es `false`. Lo
 
 El nuevo participante accede a todo el historial, pero el último mensaje existente se toma como punto inicial de lectura para el contador.
 
+La incorporación es atómica. Si cualquiera de los UUID ya pertenece a la
+conversación, no se agrega ningún participante y se responde
+`409 PARTICIPANTE_YA_EXISTE`.
+
 ### Errores
 
 | HTTP | Código |
 |---:|---|
 | `404` | `CONVERSACION_NO_ENCONTRADA` |
+| `404` | `USUARIO_NO_ENCONTRADO` |
 | `409` | `PARTICIPANTE_YA_EXISTE` |
 | `422` | `PARTICIPANTE_INACTIVO` |
 
@@ -1926,6 +2121,7 @@ El mensaje debe pertenecer a la conversación. El puntero solo puede avanzar, no
 
 | HTTP | Código |
 |---:|---|
+| `404` | `CONVERSACION_NO_ENCONTRADA` |
 | `404` | `MENSAJE_NO_ENCONTRADO` |
 | `422` | `MENSAJE_NO_PERTENECE_CONVERSACION` |
 | `409` | `LECTURA_NO_PUEDE_RETROCEDER` |
@@ -1936,7 +2132,10 @@ El mensaje debe pertenecer a la conversación. El puntero solo puede avanzar, no
 **Body:** ninguno.  
 **Respuesta:** `204`.
 
-El archivo es individual e idempotente.
+El archivo es individual e idempotente. No modifica
+`conversaciones.updatedAt`.
+
+**Error específico:** `404 CONVERSACION_NO_ENCONTRADA`.
 
 ## 12.12 `PATCH /conversaciones/:id/desarchivar`
 
@@ -1944,7 +2143,10 @@ El archivo es individual e idempotente.
 **Body:** ninguno.  
 **Respuesta:** `204`.
 
-El desarchivo es individual e idempotente.
+El desarchivo es individual e idempotente. No modifica
+`conversaciones.updatedAt`.
+
+**Error específico:** `404 CONVERSACION_NO_ENCONTRADA`.
 
 ---
 
@@ -2020,7 +2222,14 @@ Todos los autenticados consultan registros activos. Solo el administrador crea, 
 }
 ```
 
-## 13.2 `GET /<catalogo>`
+## 13.2 Listados de catálogos
+
+| Método | Ruta |
+|---|---|
+| `GET` | `/servicios` |
+| `GET` | `/consultorios` |
+| `GET` | `/asuntos` |
+| `GET` | `/tipos-informe` |
 
 **Acceso:** cualquier autenticado.
 
@@ -2038,7 +2247,20 @@ Todos los autenticados consultan registros activos. Solo el administrador crea, 
 
 Envelope paginado de la proyección correspondiente.
 
-## 13.3 `GET /<catalogo>/:id`
+### Error específico
+
+| HTTP | Código | Situación |
+|---:|---|---|
+| `403` | `FORBIDDEN_FILTER` | Un no administrador solicita `activo=false`. |
+
+## 13.3 Detalles de catálogos
+
+| Método | Ruta |
+|---|---|
+| `GET` | `/servicios/:id` |
+| `GET` | `/consultorios/:id` |
+| `GET` | `/asuntos/:id` |
+| `GET` | `/tipos-informe/:id` |
 
 **Acceso:** cualquier autenticado. Los registros inactivos solo son visibles para administrador.
 
@@ -2046,11 +2268,14 @@ Envelope paginado de la proyección correspondiente.
 
 `data` contiene la proyección del catálogo.
 
-### Error
+### Errores específicos
 
-| HTTP | Código |
-|---:|---|
-| `404` | `CATALOGO_NO_ENCONTRADO` |
+| Ruta | HTTP | Código |
+|---|---:|---|
+| `/servicios/:id` | `404` | `SERVICIO_NO_ENCONTRADO` |
+| `/consultorios/:id` | `404` | `CONSULTORIO_NO_ENCONTRADO` |
+| `/asuntos/:id` | `404` | `ASUNTO_NO_ENCONTRADO` |
+| `/tipos-informe/:id` | `404` | `TIPO_INFORME_NO_ENCONTRADO` |
 
 ## 13.4 `POST /servicios`
 
@@ -2086,6 +2311,14 @@ Envelope paginado de la proyección correspondiente.
 ### Respuesta `200`
 
 `data` contiene el servicio actualizado.
+
+### Errores específicos
+
+| HTTP | Código |
+|---:|---|
+| `404` | `SERVICIO_NO_ENCONTRADO` |
+| `409` | `CATALOGO_NOMBRE_DUPLICADO` |
+| `422` | `SERVICIO_DESCRIPCION_REQUERIDA` |
 
 ## 13.6 `PUT /servicios/:id/imagen`
 
@@ -2150,6 +2383,13 @@ La operación es idempotente.
 
 `data` contiene el consultorio creado.
 
+### Errores específicos
+
+| HTTP | Código |
+|---:|---|
+| `409` | `CATALOGO_NOMBRE_DUPLICADO` |
+| `422` | `CONSULTORIO_CAPACIDAD_INVALIDA` |
+
 ## 13.9 `PUT /consultorios/:id`
 
 **Acceso:** solo administrador.  
@@ -2158,6 +2398,14 @@ La operación es idempotente.
 ### Respuesta `200`
 
 `data` contiene el consultorio actualizado.
+
+### Errores específicos
+
+| HTTP | Código |
+|---:|---|
+| `404` | `CONSULTORIO_NO_ENCONTRADO` |
+| `409` | `CATALOGO_NOMBRE_DUPLICADO` |
+| `422` | `CONSULTORIO_CAPACIDAD_INVALIDA` |
 
 ## 13.10 `POST /asuntos`
 
@@ -2197,6 +2445,13 @@ La operación es idempotente.
 
 `data` contiene el asunto actualizado. No se acepta `codigo`.
 
+### Errores específicos
+
+| HTTP | Código |
+|---:|---|
+| `404` | `ASUNTO_NO_ENCONTRADO` |
+| `409` | `CATALOGO_NOMBRE_DUPLICADO` |
+
 ## 13.12 `POST /tipos-informe`
 
 **Acceso:** solo administrador.
@@ -2212,6 +2467,12 @@ La operación es idempotente.
 
 `data` contiene el tipo creado.
 
+### Error específico
+
+| HTTP | Código |
+|---:|---|
+| `409` | `CATALOGO_NOMBRE_DUPLICADO` |
+
 ## 13.13 `PUT /tipos-informe/:id`
 
 **Acceso:** solo administrador.  
@@ -2221,7 +2482,21 @@ La operación es idempotente.
 
 `data` contiene el tipo actualizado.
 
-## 13.14 `PATCH /<catalogo>/:id/estado`
+### Errores específicos
+
+| HTTP | Código |
+|---:|---|
+| `404` | `TIPO_INFORME_NO_ENCONTRADO` |
+| `409` | `CATALOGO_NOMBRE_DUPLICADO` |
+
+## 13.14 Estado de catálogos
+
+| Método | Ruta |
+|---|---|
+| `PATCH` | `/servicios/:id/estado` |
+| `PATCH` | `/consultorios/:id/estado` |
+| `PATCH` | `/asuntos/:id/estado` |
+| `PATCH` | `/tipos-informe/:id/estado` |
 
 **Acceso:** solo administrador.
 
@@ -2235,25 +2510,27 @@ La operación es idempotente.
 
 `data` contiene el catálogo actualizado.
 
-### Errores
+### Errores específicos
 
-| HTTP | Código |
-|---:|---|
-| `404` | `CATALOGO_NO_ENCONTRADO` |
-| `409` | `CATALOGO_ESTADO_SIN_CAMBIOS` |
-| `409` | `SERVICIO_CON_TURNOS_FUTUROS` |
-| `409` | `CONSULTORIO_CON_TURNOS_FUTUROS` |
+| Ruta | HTTP | Código |
+|---|---:|---|
+| `/servicios/:id/estado` | `404` | `SERVICIO_NO_ENCONTRADO` |
+| `/consultorios/:id/estado` | `404` | `CONSULTORIO_NO_ENCONTRADO` |
+| `/asuntos/:id/estado` | `404` | `ASUNTO_NO_ENCONTRADO` |
+| `/tipos-informe/:id/estado` | `404` | `TIPO_INFORME_NO_ENCONTRADO` |
+| Cualquiera | `409` | `CATALOGO_ESTADO_SIN_CAMBIOS` |
+| `/servicios/:id/estado` | `409` | `SERVICIO_CON_TURNOS_FUTUROS` |
+| `/consultorios/:id/estado` | `409` | `CONSULTORIO_CON_TURNOS_FUTUROS` |
 
 Asuntos y tipos de informe pueden desactivarse aunque posean historial; dejan de estar disponibles para nuevas operaciones.
 
-## 13.15 Errores comunes de catálogos
+## 13.15 Criterios comunes de catálogos
 
-| HTTP | Código | Situación |
-|---:|---|---|
-| `404` | `CATALOGO_NO_ENCONTRADO` | El recurso no existe o no es visible. |
-| `409` | `CATALOGO_NOMBRE_DUPLICADO` | El nombre ya existe sin distinguir mayúsculas. |
-| `422` | `CATALOGO_EN_USO` | Una operación no permitida afectaría datos históricos. |
-| `422` | `CONSULTORIO_CAPACIDAD_INVALIDA` | La capacidad informada no es mayor que cero. |
+Los errores específicos están enumerados en la operación que los produce. Los
+nombres se comparan sin distinguir mayúsculas y sus duplicados utilizan
+`409 CATALOGO_NOMBRE_DUPLICADO`. La capacidad de consultorio inválida utiliza
+`422 CONSULTORIO_CAPACIDAD_INVALIDA`. No existe un código genérico de recurso no
+encontrado: cada catálogo usa su propio código estable.
 
 ---
 
@@ -2481,6 +2758,7 @@ LOGIN_LIMITE_EXCEDIDO
 TOKEN_INVALIDO
 TOKEN_EXPIRADO
 REFRESH_INVALIDO
+REFRESH_REUTILIZADO
 SESION_REVOCADA
 SESION_EXPIRADA
 USUARIO_INACTIVO
@@ -2497,6 +2775,7 @@ USUARIO_ESTADO_SIN_CAMBIOS
 USUARIO_NO_ES_PRESTADOR
 USUARIO_PROYECCION_DENEGADA
 USUARIO_AUTOMODIFICACION_DENEGADA
+ULTIMO_ADMINISTRADOR_REQUERIDO
 ESPECIALIDAD_REQUERIDA
 ROL_NO_HABILITADO
 ADMINISTRADOR_NO_PUBLICABLE
@@ -2509,7 +2788,6 @@ IMAGEN_DEMASIADO_GRANDE
 
 ```text
 PACIENTE_NO_ENCONTRADO
-PACIENTE_ACCESO_DENEGADO
 PACIENTE_DNI_DUPLICADO
 PACIENTE_POSIBLE_DUPLICADO
 PACIENTE_INACTIVO
@@ -2524,6 +2802,7 @@ VINCULO_YA_EXISTE
 VINCULO_CREACION_DENEGADA
 VINCULO_TIENE_TURNOS_FUTUROS
 MOTIVO_DESVINCULACION_REQUERIDO
+PACIENTE_NO_VINCULADO
 ```
 
 ## 17.4 Servicios, catálogos y turnos
@@ -2540,10 +2819,8 @@ CONSULTORIO_INACTIVO
 CONSULTORIO_CON_TURNOS_FUTUROS
 PRESTADOR_NO_ENCONTRADO
 PRESTADOR_INACTIVO
-CATALOGO_NO_ENCONTRADO
 CATALOGO_NOMBRE_DUPLICADO
 CATALOGO_ESTADO_SIN_CAMBIOS
-CATALOGO_EN_USO
 CONSULTORIO_CAPACIDAD_INVALIDA
 ASUNTO_NO_ENCONTRADO
 ASUNTO_INACTIVO
@@ -2551,12 +2828,12 @@ ASUNTO_CODIGO_DUPLICADO
 TIPO_INFORME_NO_ENCONTRADO
 TIPO_INFORME_INACTIVO
 TURNO_NO_ENCONTRADO
-TURNO_ACCESO_DENEGADO
 TURNO_PRESTADOR_AJENO
 TURNO_NOTAS_INTERNAS_DENEGADAS
-TURNO_CONFLICTO_PROFESIONAL
+TURNO_CONFLICTO_PRESTADOR
 TURNO_CONFLICTO_PACIENTE
 TURNO_CONFLICTO_CONSULTORIO
+TURNO_CONFLICTO_HORARIO
 TURNO_HORARIO_INVALIDO
 TURNO_FECHA_INVALIDA
 TURNO_DURACION_INVALIDA
@@ -2574,11 +2851,11 @@ RANGO_FECHAS_EXCEDIDO
 
 ```text
 INFORME_NO_ENCONTRADO
-INFORME_ACCESO_DENEGADO
 INFORME_PACIENTE_NO_VINCULADO
 INFORME_NO_ES_AUTOR
 INFORME_FINALIZADO
 INFORME_AUTOR_INACTIVO
+INFORME_VERSION_CONFLICTO
 CONVERSACION_NO_ENCONTRADA
 CONVERSACION_SIN_DESTINATARIOS
 PARTICIPANTE_INACTIVO

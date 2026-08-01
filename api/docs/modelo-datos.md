@@ -1,7 +1,7 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Modelo de datos y reglas de persistencia — MVP
 
-**Versión documental:** 4.0
+**Versión documental:** 4.1
 **Fecha:** 1 de agosto de 2026
 **Motor:** PostgreSQL 16+
 **ORM:** Sequelize 6
@@ -43,18 +43,16 @@ Este documento consolida y reemplaza las reglas incompatibles de la versión 3.0
 6. No existen reprogramación ni edición estructural de turnos.
 7. El estado de lectura y el archivo de conversaciones son individuales por participante.
 
-### 1.1 Precedencia documental
+### 1.1 Autoridad documental
 
-Aplicar el siguiente orden:
+Este archivo es la autoridad exclusiva para tablas, columnas, relaciones,
+índices, constraints, transacciones e integridad. `contrato-api.md` gobierna la
+interfaz HTTP, `matriz-permisos.md` la autorización y
+`arquitectura-backend.md` la estructura técnica.
 
-1. requerimientos funcionales y decisiones expresamente aprobadas;
-2. `docs/contrato-api.md`;
-3. `docs/matriz-permisos.md`;
-4. este documento;
-5. `docs/arquitectura-backend.md`;
-6. los `AGENTS.md` aplicables.
-
-Si dos fuentes normativas se contradicen, detener la implementación afectada. No elegir una interpretación por conveniencia ni modificar una migración para ocultar la contradicción.
+Los `AGENTS.md` explican cómo trabajar, pero no modifican el esquema normativo.
+Ante una incompatibilidad transversal se detiene la parte afectada y se
+armonizan todas las fuentes; ninguna prevalece fuera de su incumbencia.
 
 ---
 
@@ -222,6 +220,10 @@ ON usuarios (rol_id, activo);
 CREATE INDEX usuarios_publicos_idx
 ON usuarios (orden_publico, apellido, nombre)
 WHERE activo = true AND visible_publicamente = true;
+
+ALTER TABLE usuarios
+ADD CONSTRAINT usuarios_orden_publico_chk
+CHECK (orden_publico IS NULL OR orden_publico >= 0);
 ```
 
 Reglas:
@@ -236,6 +238,11 @@ Reglas:
 - cambiar el DNI recalcula el hash y revoca todas las sesiones en la misma transacción;
 - un usuario inactivo no inicia ni renueva sesión ni aparece en selectores de nuevas operaciones;
 - desactivar a un prestador exige que no tenga turnos futuros `pendiente` o `confirmado`.
+- desactivar o cambiar el rol del último administrador activo está prohibido y
+  se serializa mediante un advisory lock transaccional estable;
+- cambiar un prestador a un rol no prestador cierra vínculos activos, elimina
+  asociaciones vigentes de servicios habituales y bloquea sus borradores sin
+  reasignarlos.
 
 La desactivación actualiza el usuario, revoca sesiones, cierra vínculos activos y registra auditoría en una única transacción. No borra historial.
 
@@ -249,7 +256,8 @@ Sesiones revocables asociadas con refresh tokens rotativos.
 |---|---|:---:|---|
 | `id` | UUID | No | PK y `sid` del access token. |
 | `usuario_id` | UUID | No | FK a `usuarios`. |
-| `refresh_token_hash` | VARCHAR(255) | No | Nunca contiene el token plano. |
+| `refresh_token_hash` | BYTEA | No | Digest SHA-256 vigente, 32 bytes. |
+| `previous_refresh_token_hash` | BYTEA | Sí | Digest inmediatamente anterior para detectar reutilización. |
 | `expires_at` | TIMESTAMPTZ | No | Expiración vigente: 7 días. |
 | `revoked_at` | TIMESTAMPTZ | Sí | Nulo mientras la sesión esté activa. |
 | `last_used_at` | TIMESTAMPTZ | Sí | Última rotación o uso. |
@@ -273,10 +281,16 @@ Reglas:
 
 - se permiten varias sesiones por usuario;
 - logout revoca la actual y logout total revoca todas;
-- refresh reemplaza el hash según la estrategia aprobada;
+- el token opaco tiene formato `<sessionId>.<secret>` y el secreto contiene 256
+  bits aleatorios codificados en base64url;
+- refresh bloquea la fila de sesión, mueve el digest vigente a
+  `previous_refresh_token_hash` y guarda el digest SHA-256 nuevo;
+- reutilizar el digest anterior revoca la sesión; otro digest inválido no la
+  revoca por mera coincidencia de `sessionId`;
 - una sesión expirada o revocada no puede renovarse;
 - desactivación, cambio de DNI y restablecimiento de acceso revocan todas las sesiones;
-- el formato y algoritmo definitivo del refresh token permanecen pendientes.
+- cada request privada consulta sesión y usuario para hacer efectiva la
+  revocación desde el commit.
 
 ---
 
@@ -305,6 +319,10 @@ ON servicios (lower(nombre));
 CREATE INDEX servicios_publicos_idx
 ON servicios (orden_publico, nombre)
 WHERE activo = true AND visible_publicamente = true;
+
+ALTER TABLE servicios
+ADD CONSTRAINT servicios_orden_publico_chk
+CHECK (orden_publico IS NULL OR orden_publico >= 0);
 ```
 
 Reglas:
@@ -404,6 +422,8 @@ Reglas:
 - todo paciente comienza activo;
 - desactivar exige ausencia de turnos futuros bloqueantes;
 - un paciente inactivo no admite nuevos turnos, informes, vínculos ni conversaciones asociadas;
+- desactivar un paciente conserva sus vínculos activos para continuidad
+  histórica y no los reabre ni reconstruye al reactivarlo;
 - una conversación existente sobre un paciente luego inactivo continúa operativa;
 - el historial se conserva.
 
@@ -467,6 +487,10 @@ CREATE UNIQUE INDEX usuarios_pacientes_activo_uq
 ON usuarios_pacientes (usuario_id, paciente_id)
 WHERE activo = true;
 
+CREATE INDEX usuarios_pacientes_paciente_activo_idx
+ON usuarios_pacientes (paciente_id, usuario_id)
+WHERE activo = true;
+
 ALTER TABLE usuarios_pacientes
 ADD CONSTRAINT usuarios_pacientes_estado_chk
 CHECK (
@@ -526,13 +550,14 @@ Solo el administrador gestiona el catálogo. Cualquier autenticado consulta acti
 
 Reserva de paciente, prestador, servicio y consultorio en un intervalo concreto.
 
-`profesional_id` conserva el nombre contractual del MVP, aunque funcionalmente representa al prestador responsable, que puede tener rol `profesional` o `coordinacion`.
+`prestador_id` representa al responsable del turno, que puede tener rol
+`profesional` o `coordinacion`.
 
 | Campo | Tipo | Nulo | Regla |
 |---|---|:---:|---|
 | `id` | UUID | No | PK. |
 | `paciente_id` | UUID | No | FK a `pacientes`. |
-| `profesional_id` | UUID | No | FK a usuario prestador. |
+| `prestador_id` | UUID | No | FK a usuario prestador. |
 | `consultorio_id` | UUID | No | FK a `consultorios`. |
 | `servicio_id` | UUID | No | FK a `servicios`. |
 | `inicio_at` | TIMESTAMPTZ | No | Inicio UTC. |
@@ -597,9 +622,9 @@ CHECK (
 
 ```sql
 ALTER TABLE turnos
-ADD CONSTRAINT turnos_profesional_no_overlap
+ADD CONSTRAINT turnos_prestador_no_overlap
 EXCLUDE USING gist (
-  profesional_id WITH =,
+  prestador_id WITH =,
   tstzrange(inicio_at, fin_at, '[)') WITH &&
 )
 WHERE (estado IN ('pendiente', 'confirmado'));
@@ -623,11 +648,16 @@ WHERE (estado IN ('pendiente', 'confirmado'));
 
 El rango `[)` permite turnos consecutivos. PostgreSQL es la autoridad final ante solicitudes simultáneas; una consulta previa de disponibilidad solo mejora el mensaje.
 
+La disponibilidad ofrece comienzos cada 15 minutos. Con prestador y
+consultorio informados devuelve la intersección de ambos. Los conflictos únicos
+se traducen al código específico del recurso; conflictos múltiples o no
+atribuibles de forma estable utilizan `TURNO_CONFLICTO_HORARIO`.
+
 ### 13.2 Índices
 
 ```sql
 CREATE INDEX turnos_inicio_idx ON turnos (inicio_at);
-CREATE INDEX turnos_profesional_inicio_idx ON turnos (profesional_id, inicio_at);
+CREATE INDEX turnos_prestador_inicio_idx ON turnos (prestador_id, inicio_at);
 CREATE INDEX turnos_paciente_inicio_idx ON turnos (paciente_id, inicio_at);
 CREATE INDEX turnos_consultorio_inicio_idx ON turnos (consultorio_id, inicio_at);
 CREATE INDEX turnos_estado_inicio_idx ON turnos (estado, inicio_at);
@@ -637,6 +667,8 @@ CREATE INDEX turnos_servicio_inicio_idx ON turnos (servicio_id, inicio_at);
 ### 13.3 Reglas de creación e historia
 
 - paciente, prestador, consultorio y servicio deben estar activos;
+- creación y desactivación bloquean las filas de paciente, prestador, servicio
+  y consultorio en ese orden antes de comprobar precondiciones;
 - el servicio no necesita ser habitual del prestador;
 - fecha no pasada, lunes a sábado, dentro de 08:00–21:00;
 - estado inicial siempre `pendiente`;
@@ -688,6 +720,7 @@ Informes clínicos redactados por profesionales o coordinación.
 | `resumen` | TEXT | No | Dato clínico. |
 | `contenido` | TEXT | No | Dato clínico. |
 | `estado` | VARCHAR(20) | No | Default `borrador`. |
+| `version` | INTEGER | No | Default `1`; concurrencia optimista. |
 | `fecha_emision` | TIMESTAMPTZ | Sí | Se completa al finalizar. |
 | `created_at` | TIMESTAMPTZ | No | Default `now()`. |
 | `updated_at` | TIMESTAMPTZ | No | Default `now()`. |
@@ -707,6 +740,10 @@ CHECK (
   (estado = 'finalizado' AND fecha_emision IS NOT NULL)
 );
 
+ALTER TABLE informes
+ADD CONSTRAINT informes_version_chk
+CHECK (version >= 1);
+
 CREATE INDEX informes_paciente_fecha_idx
 ON informes (paciente_id, created_at DESC);
 
@@ -715,6 +752,13 @@ ON informes (autor_id, estado);
 
 CREATE INDEX informes_tipo_idx
 ON informes (tipo_informe_id);
+
+CREATE INDEX informes_created_at_idx
+ON informes (created_at DESC, id DESC);
+
+CREATE INDEX informes_fecha_emision_idx
+ON informes (fecha_emision DESC, id DESC)
+WHERE fecha_emision IS NOT NULL;
 ```
 
 Reglas:
@@ -724,6 +768,14 @@ Reglas:
 - coordinación crea sobre cualquier paciente activo;
 - todo informe comienza como `borrador`;
 - solo el autor activo edita o finaliza su borrador;
+- edición y finalización actualizan mediante `WHERE id = :id AND version =
+  :expectedVersion` e incrementan `version`; cero filas afectadas produce
+  `INFORME_VERSION_CONFLICTO`;
+- el profesional requiere vínculo activo incluso cuando es autor;
+- un paciente inactivo impide crear, pero no editar o finalizar un borrador
+  preexistente si se mantienen autoría y vínculo;
+- un tipo inactivo puede conservarse en el borrador que ya lo referencia, pero
+  no seleccionarse como reemplazo;
 - un rol superior no hereda escritura;
 - finalizar asigna `fecha_emision` y cambia a `finalizado` dentro de una transacción con auditoría;
 - un finalizado no se edita, reabre, reasigna ni elimina;
@@ -732,7 +784,7 @@ Reglas:
 - el listado no necesita cargar `resumen` ni `contenido`;
 - título, resumen y contenido nunca se copian a auditoría o logs.
 
-Los constraints garantizan coherencia entre estado y fecha, pero no impiden físicamente modificar el texto de un informe finalizado. La eventual protección mediante trigger permanece pendiente y no debe agregarse por intuición.
+Los constraints garantizan coherencia entre estado y fecha, pero no impiden físicamente modificar el texto de un informe finalizado. Una protección adicional mediante trigger es deuda no bloqueante y no debe agregarse incidentalmente.
 
 ---
 
@@ -804,7 +856,9 @@ Reglas:
 - no se elimina ni cierra;
 - una conversación asociada con un paciente luego inactivo continúa operativa.
 
-Qué acciones actualizan `conversaciones.updated_at` permanece pendiente. El archivo individual o el avance de lectura no deben cambiar por accidente el orden de bandeja de todos.
+`conversaciones.updated_at` cambia únicamente cuando se crea un mensaje. Crear
+participantes, avanzar lectura, archivar o desarchivar no modifica la actividad
+global ni el orden de bandeja.
 
 ---
 
@@ -817,7 +871,7 @@ Controla acceso, punto de lectura y archivo individual.
 | `id` | UUID | No | PK. |
 | `conversacion_id` | UUID | No | FK a `conversaciones`. |
 | `usuario_id` | UUID | No | FK a `usuarios`. |
-| `ultimo_mensaje_leido_id` | UUID | Sí | FK a `mensajes`, agregada después. |
+| `ultimo_mensaje_leido_id` | UUID | Sí | Parte de FK compuesta a `mensajes`, agregada después. |
 | `ultima_lectura_at` | TIMESTAMPTZ | Sí | Timestamp del avance. |
 | `archivado_at` | TIMESTAMPTZ | Sí | Archivo individual. |
 | `agregado_por` | UUID | Sí | Actor que incorporó al participante. |
@@ -848,8 +902,27 @@ Reglas:
 - los mensajes propios no cuentan como no leídos;
 - archivo y desarchivo solo afectan la fila del actor y son idempotentes;
 - archivar no elimina, cierra ni oculta la conversación para otros.
+- un mensaje nuevo desarchiva la conversación para los receptores, no para el
+  remitente, y computa como no leído para ellos;
+- un lote de participantes que contiene al menos un usuario ya incorporado se
+  rechaza completo con `PARTICIPANTE_YA_EXISTE`.
 
-La FK simple de `ultimo_mensaje_leido_id` no garantiza que el mensaje pertenezca a la misma conversación. El service debe validarlo. No agregar un trigger o constraint compuesto sin aprobación.
+La pertenencia del puntero se garantiza después de crear `mensajes`:
+
+```sql
+ALTER TABLE mensajes
+ADD CONSTRAINT mensajes_conversacion_id_id_uq
+UNIQUE (conversacion_id, id);
+
+ALTER TABLE conversaciones_participantes
+ADD CONSTRAINT conversaciones_participantes_ultimo_mensaje_fk
+FOREIGN KEY (conversacion_id, ultimo_mensaje_leido_id)
+REFERENCES mensajes (conversacion_id, id)
+ON DELETE SET NULL (ultimo_mensaje_leido_id);
+```
+
+El service conserva además el avance monotónico comparando el orden compuesto
+`(created_at, id)` dentro de una transacción que bloquea la participación.
 
 ---
 
@@ -862,7 +935,7 @@ Mensajes inmutables de una conversación.
 | `id` | UUID | No | PK. |
 | `conversacion_id` | UUID | No | FK a `conversaciones`. |
 | `remitente_id` | UUID | No | FK a `usuarios`. |
-| `contenido` | TEXT | No | No vacío; dato sensible. |
+| `contenido` | TEXT | No | Entre 1 y 4.000 caracteres; dato sensible. |
 | `created_at` | TIMESTAMPTZ | No | Default `now()`. |
 
 No posee `updated_at` porque no existe edición.
@@ -877,11 +950,13 @@ Reglas:
 - remitente activo y participante de la conversación;
 - contenido validado por Joi y service;
 - paginación estable mediante cursor compuesto `(created_at, id)`;
+- orden contractual `created_at DESC, id DESC`;
 - mensajes no se editan ni eliminan;
 - no existen adjuntos, reacciones, menciones ni búsqueda de contenido;
 - auditoría registra el envío, nunca el contenido ni preview.
 
-El máximo definitivo de contenido y la longitud del preview permanecen pendientes.
+El preview contiene como máximo 120 caracteres y se deriva en la proyección; no
+se persiste como una segunda copia del contenido.
 
 ---
 
@@ -934,7 +1009,8 @@ Reglas:
 - no se audita cada polling del resumen de no leídos;
 - no se persisten DNI, credenciales, hashes, tokens, cookies, diagnóstico, observaciones clínicas, título/resumen/contenido de informes, mensajes o previews, notas internas, datos completos de tutor, bodies, SQL, constraints ni stacks.
 
-La protección física append-only, la retención y el particionado permanecen pendientes. No agregar triggers ni jobs de purga sin aprobación.
+La protección física append-only, la retención y el particionado son deuda no
+bloqueante. No agregar triggers ni jobs de purga sin aprobación.
 
 ---
 
@@ -952,7 +1028,7 @@ La protección física append-only, la retención y el particionado permanecen p
 | `usuarios_pacientes` | `paciente_id` | `pacientes` | `RESTRICT` |
 | `usuarios_pacientes` | `vinculado_por`, `desvinculado_por` | `usuarios` | `SET NULL` |
 | `turnos` | `paciente_id` | `pacientes` | `RESTRICT` |
-| `turnos` | `profesional_id` | `usuarios` | `RESTRICT` |
+| `turnos` | `prestador_id` | `usuarios` | `RESTRICT` |
 | `turnos` | `consultorio_id` | `consultorios` | `RESTRICT` |
 | `turnos` | `servicio_id` | `servicios` | `RESTRICT` |
 | `turnos` | `creado_por` | `usuarios` | `SET NULL` |
@@ -962,7 +1038,7 @@ La protección física append-only, la retención y el particionado permanecen p
 | `conversaciones_participantes` | `conversacion_id` | `conversaciones` | `CASCADE` técnica |
 | `conversaciones_participantes` | `usuario_id` | `usuarios` | `RESTRICT` |
 | `conversaciones_participantes` | `agregado_por` | `usuarios` | `SET NULL` |
-| `conversaciones_participantes` | `ultimo_mensaje_leido_id` | `mensajes` | `SET NULL` |
+| `conversaciones_participantes` | (`conversacion_id`, `ultimo_mensaje_leido_id`) | `mensajes` | `SET NULL` solo sobre el puntero, mediante FK compuesta |
 | `mensajes` | `conversacion_id` | `conversaciones` | `CASCADE` técnica |
 | `mensajes` | `remitente_id` | `usuarios` | `RESTRICT` |
 | `auditoria_eventos` | `usuario_id` | `usuarios` | `SET NULL` |
@@ -1039,7 +1115,9 @@ BEGIN
 COMMIT
 ```
 
-El límite exacto frente a un mensaje simultáneo debe quedar definido por la estrategia concurrente aprobada.
+Incorporar participantes y enviar mensajes bloquean primero la fila de
+`conversaciones`. El lote de incorporación se valida completo antes de insertar;
+un participante repetido revierte toda la operación.
 
 ### 22.6 Enviar mensaje
 
@@ -1047,7 +1125,8 @@ El límite exacto frente a un mensaje simultáneo debe quedar definido por la es
 BEGIN
   validar participación y estado del remitente
   crear mensaje
-  actualizar actividad si corresponde a la regla aprobada
+  actualizar conversaciones.updated_at
+  desarchivar participaciones receptoras
   registrar auditoría
 COMMIT
 ```
@@ -1056,9 +1135,9 @@ COMMIT
 
 ```text
 BEGIN
-  bloquear o actualizar condicionalmente el borrador
+  actualizar condicionalmente por id y expectedVersion
   validar autor y estado
-  asignar finalizado y fecha_emision
+  asignar finalizado, fecha_emision y version + 1
   registrar auditoría
 COMMIT
 ```
@@ -1066,6 +1145,16 @@ COMMIT
 ### 22.8 Transiciones y cambios auditados
 
 Cambios de estado de turno, cancelación, archivo/desarchivo de conversación y otras escrituras cuya auditoría forma parte del resultado deben confirmar o revertir juntos.
+
+Las transiciones de un turno bloquean su fila con `SELECT ... FOR UPDATE`,
+validan desde el estado persistido y escriben estado y auditoría en la misma
+transacción.
+
+La lectura clínica de un informe y `INFORME_VISUALIZADO` son fail-closed: si no
+se puede insertar el evento, no se entrega el contenido. Los intentos fallidos
+se registran en una transacción independiente de mejor esfuerzo después del
+rollback funcional; si tampoco pueden persistirse, se conserva la respuesta
+funcional original y se emite un log técnico sanitizado.
 
 ---
 
@@ -1134,19 +1223,19 @@ No agregar índices duplicados de `UNIQUE` o PK. Verificar planes con volumen re
 16. `0016-create-conversaciones`
 17. `0017-create-conversaciones-participantes`
 18. `0018-create-mensajes`
-19. `0019-add-ultimo-mensaje-leido-fk`
+19. `0019-add-ultimo-mensaje-leido-composite-fk`
 20. `0020-create-auditoria-eventos`
 21. `0021-create-additional-indexes`
 
 La FK `ultimo_mensaje_leido_id` se agrega después de `mensajes` para evitar la dependencia circular inicial.
 
-Si una instalación ya aplicó migraciones v3, las correcciones v4 se realizan mediante migraciones nuevas; nunca se edita una migración aplicada. Deben contemplarse, según el esquema real existente:
-
-- `servicios.imagen_url`;
-- `servicios.visible_publicamente`;
-- `servicios.orden_publico` si faltara;
-- nulabilidad de `servicios.descripcion` conforme al contrato v4;
-- índices públicos asociados.
+La API todavía no está publicada. Las migraciones iniciales deben incorporar
+directamente este modelo v4.1, incluidos digests de sesión, `prestador_id`,
+versión de informes, constraints de orden e integridad compuesta de lectura. No
+se mantienen alias ni migraciones de compatibilidad para nombres contractuales
+anteriores. Una base local creada desde un borrador previo es desechable y debe
+reconstruirse con la secuencia vigente; una migración ya aplicada en un entorno
+persistente nunca se edita.
 
 ---
 
@@ -1276,50 +1365,23 @@ Reglas:
 
 ---
 
-## 30. Decisiones pendientes
+## 30. Deuda técnica no bloqueante
 
-Ningún agente o desarrollador debe resolver por intuición:
+Las siguientes decisiones no impiden implementar el MVP y no deben resolverse
+como parte de un cambio funcional no relacionado:
 
-### Autenticación
+- protección física append-only de auditoría mediante roles o triggers;
+- retención, archivado y particionado de auditoría;
+- proveedor productivo, backup y migración del almacenamiento de imágenes;
+- caché e invalidación de respuestas públicas;
+- índices de búsqueda textual avanzada;
+- disponibilidad personalizada, descansos, feriados y bloqueos de agenda;
+- correcciones o anexos de informes finalizados;
+- analítica de tráfico público.
 
-- formato definitivo del refresh token;
-- algoritmo de hash y detección de reutilización;
-- refreshes concurrentes legítimos;
-- protección del último administrador activo.
-
-### Informes
-
-- trigger defensivo para inmutabilidad física;
-- estrategia exacta ante edición y finalización concurrentes;
-- acceso del autor cuando termina el vínculo con el paciente;
-- destino de borradores sobre pacientes inactivos;
-- finalización con un tipo de informe luego desactivado;
-- conducta si falla la auditoría de una lectura clínica.
-
-### Mensajería
-
-- garantía física de pertenencia del puntero a la conversación;
-- algoritmo exacto para avance monotónico;
-- orden compuesto aplicable al puntero;
-- límite transaccional entre incorporación y mensaje simultáneo;
-- comportamiento de lotes parcialmente duplicados de participantes;
-- efecto de mensajes nuevos sobre conversaciones archivadas;
-- inclusión de archivadas en el resumen de no leídas;
-- acciones que actualizan `conversaciones.updated_at`;
-- límites definitivos de mensajes y previews.
-
-### Auditoría y archivos
-
-- inmutabilidad física de auditoría;
-- retención, archivado o particionado;
-- persistencia de intentos fallidos fuera del rollback;
-- proveedor productivo para imágenes y estrategia definitiva de compensación.
-
-### Turnos
-
-- prioridad entre conflictos simultáneos de paciente, prestador y consultorio;
-- estrategia concreta para carreras entre transiciones del mismo turno;
-- granularidad y alineación de horas en la consulta orientativa de disponibilidad.
+Hasta que exista una decisión posterior se mantiene la protección de aplicación,
+el almacenamiento abstraído, las consultas indexadas actuales y el alcance
+funcional documentado, sin agregar tablas, endpoints ni procesos anticipados.
 
 ---
 
@@ -1346,5 +1408,5 @@ La implementación es conforme cuando:
 - informes finalizados y mensajes son inmutables para la aplicación;
 - conversaciones respetan participación y estado individual;
 - auditoría permanece sanitizada;
-- decisiones pendientes no se resuelven silenciosamente;
+- incompatibilidades y deuda técnica no se resuelven silenciosamente;
 - no se incorpora alcance excluido.
