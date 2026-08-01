@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing API con Jest"
+  short_description: "Prueba la API con Jest por capas"
+  default_prompt: "Usa $testing-api-jest para agregar las pruebas necesarias para este cambio de backend."

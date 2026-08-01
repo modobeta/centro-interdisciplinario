@@ -1,0 +1,4 @@
+interface:
+  display_name: "Documentación operativa API"
+  short_description: "Sincroniza contrato, modelo, permisos y AGENTS"
+  default_prompt: "Usa $documentacion-operativa-api para actualizar las fuentes normativas afectadas por este cambio."

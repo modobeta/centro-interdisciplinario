@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mensajería privada"
+  short_description: "Protege conversaciones y mensajes privados"
+  default_prompt: "Usa $mensajeria-privada para implementar este flujo sin vulnerar la privacidad de participantes."

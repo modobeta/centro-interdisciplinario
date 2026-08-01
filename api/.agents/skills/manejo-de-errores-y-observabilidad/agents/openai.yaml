@@ -1,0 +1,4 @@
+interface:
+  display_name: "Errores y observabilidad"
+  short_description: "Normaliza errores, logs y controles HTTP"
+  default_prompt: "Usa $manejo-de-errores-y-observabilidad para integrar este fallo y su observabilidad segura."

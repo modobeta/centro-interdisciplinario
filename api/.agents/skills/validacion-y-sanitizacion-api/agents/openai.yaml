@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validación y sanitización API"
+  short_description: "Valida y sanitiza entradas de la API"
+  default_prompt: "Usa $validacion-y-sanitizacion-api para definir y verificar las entradas de este endpoint."

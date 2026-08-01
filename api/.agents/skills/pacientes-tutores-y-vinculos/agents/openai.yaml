@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pacientes, tutores y vínculos"
+  short_description: "Protege fichas, tutores y vínculos clínicos"
+  default_prompt: "Usa $pacientes-tutores-y-vinculos para modificar este flujo clínico respetando scopes y relaciones."

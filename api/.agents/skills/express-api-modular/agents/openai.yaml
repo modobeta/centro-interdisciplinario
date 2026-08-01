@@ -1,0 +1,4 @@
+interface:
+  display_name: "Express API modular"
+  short_description: "Implementa endpoints Express por capas"
+  default_prompt: "Usa $express-api-modular para implementar un endpoint alineado con la arquitectura de esta API."

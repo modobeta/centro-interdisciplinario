@@ -1,0 +1,4 @@
+interface:
+  display_name: "Auditoría de operaciones"
+  short_description: "Registra operaciones sensibles sin filtrar datos"
+  default_prompt: "Usa $auditoria-de-operaciones para auditar este caso de uso sensible de forma segura."

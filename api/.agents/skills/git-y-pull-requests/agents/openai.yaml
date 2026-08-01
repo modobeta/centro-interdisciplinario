@@ -1,0 +1,7 @@
+interface:
+  display_name: "Git y pull requests"
+  short_description: "Prepara commits y pull requests verificables"
+  default_prompt: "Usa $git-y-pull-requests para revisar el diff y preparar un commit o pull request verificable."
+
+policy:
+  allow_implicit_invocation: false

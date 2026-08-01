@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orquestación de cambios API"
+  short_description: "Coordina cambios seguros en toda la API"
+  default_prompt: "Usa $orquestacion-de-cambios-api para analizar y coordinar este cambio del backend de punta a punta."

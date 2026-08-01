@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seguridad de datos sensibles"
+  short_description: "Evita filtraciones de información sensible"
+  default_prompt: "Usa $seguridad-de-datos-sensibles para revisar este cambio en busca de filtraciones y exposición indebida."

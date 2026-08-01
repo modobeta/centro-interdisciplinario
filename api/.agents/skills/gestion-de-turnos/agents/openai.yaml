@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gestión de turnos"
+  short_description: "Implementa agenda y turnos sin solapamientos"
+  default_prompt: "Usa $gestion-de-turnos para implementar este cambio de agenda respetando concurrencia y estados."

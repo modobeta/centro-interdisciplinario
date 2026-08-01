@@ -1,0 +1,4 @@
+interface:
+  display_name: "PostgreSQL y Sequelize"
+  short_description: "Diseña persistencia y consultas Sequelize"
+  default_prompt: "Usa $postgresql-y-sequelize para diseñar esta consulta o persistencia sin exponer datos."

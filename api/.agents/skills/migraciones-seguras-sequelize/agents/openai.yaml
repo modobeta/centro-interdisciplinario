@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migraciones seguras Sequelize"
+  short_description: "Evoluciona PostgreSQL con migraciones seguras"
+  default_prompt: "Usa $migraciones-seguras-sequelize para planificar e implementar este cambio de esquema."

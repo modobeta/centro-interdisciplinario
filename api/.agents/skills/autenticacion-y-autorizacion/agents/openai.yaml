@@ -1,0 +1,4 @@
+interface:
+  display_name: "Autenticación y autorización"
+  short_description: "Protege sesiones, permisos y recursos"
+  default_prompt: "Usa $autenticacion-y-autorizacion para implementar acceso seguro y policies en esta API."

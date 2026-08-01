@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gestión de informes"
+  short_description: "Gestiona informes clínicos con trazabilidad"
+  default_prompt: "Usa $gestion-de-informes para implementar este cambio de informes con autoría y trazabilidad."
