@@ -22,6 +22,8 @@
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:status": "sequelize-cli db:migrate:status",
+    "db:seed:base": "sequelize-cli db:seed --seed 0001-seed-roles.js && sequelize-cli db:seed --seed 0002-seed-asuntos.js",
+    "db:seed:development": "sequelize-cli db:seed:all",
     "db:validate": "node scripts/validate-database.js",
     "docs:validate": "node scripts/validate-docs.js"
   },

@@ -54,6 +54,14 @@ npm run db:validate
 
 Las 21 migraciones crean exactamente las 17 tablas de la baseline v4.2. Los seeders productivos cargan únicamente los cuatro roles y los cinco asuntos canónicos.
 
+Para preparar una base local con datos ficticios de trabajo:
+
+```bash
+npm run db:seed:development
+```
+
+Este comando es exclusivo de `NODE_ENV=development`, es repetible sin duplicar registros y agrega el equipo ficticio definido para el centro, cuatro servicios, tres consultorios, tres tipos de informe y las asignaciones habituales de los prestadores. Las credenciales demo están declaradas en `seeders/0003-seed-development-data.js`; el DNI se almacena exclusivamente como hash bcrypt. El seeder omite estos datos fuera de desarrollo.
+
 Para crear el primer administrador, definí temporalmente `ADMIN_NOMBRE`, `ADMIN_APELLIDO`, `ADMIN_DNI` y `ADMIN_EMAIL`, y ejecutá:
 
 ```bash
