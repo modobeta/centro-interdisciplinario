@@ -6,8 +6,9 @@ const { sequelize } = require('../src/shared/database/models');
 const expectedTables = ['roles', 'usuarios', 'sesiones', 'servicios', 'usuarios_servicios', 'pacientes', 'tutores', 'usuarios_pacientes', 'consultorios', 'turnos', 'tipos_informe', 'informes', 'asuntos', 'conversaciones', 'conversaciones_participantes', 'mensajes', 'auditoria_eventos'];
 
 const main = async () => {
-  const rows = await sequelize.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'", { type: QueryTypes.SELECT });
-  const actual = new Set(rows.map((row) => row.table_name));
+  // El alias evita que el driver represente como arreglo una consulta de una sola columna llamada `table_name`.
+  const rows = await sequelize.query("SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'public'", { type: QueryTypes.SELECT });
+  const actual = new Set(rows.map((row) => row.name));
   const missing = expectedTables.filter((table) => !actual.has(table));
   if (missing.length) throw new Error(`Faltan tablas: ${missing.join(', ')}`);
   const unexpected = [...actual].filter((table) => table !== 'SequelizeMeta' && !expectedTables.includes(table));
