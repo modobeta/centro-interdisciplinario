@@ -77,9 +77,10 @@ const refresh = async (token, req) => {
   const parsed = parseRefresh(token);
   if (!parsed) throw new AppError({ code: 'REFRESH_INVALIDO', message: 'La sesión no pudo renovarse.', status: 401 });
   const outcome = await sequelize.transaction(async (transaction) => {
+    // PostgreSQL no permite FOR UPDATE sobre el lado opcional de un JOIN; se bloquea sólo la sesión que rota el token.
     const session = await Sesion.findByPk(parsed.sessionId, {
       include: [{ model: Usuario, as: 'usuario', include: [{ model: Rol, as: 'rol', attributes: ['codigo'] }] }],
-      transaction, lock: transaction.LOCK.UPDATE
+      transaction, lock: { level: transaction.LOCK.UPDATE, of: Sesion }
     });
     if (!session) return { error: 'REFRESH_INVALIDO' };
     if (session.revokedAt) return { error: 'SESION_REVOCADA' };

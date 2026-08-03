@@ -17,7 +17,10 @@ const appointmentLocks = require('../turnos/turno-locks.service');
 const context = auth.context;
 const roleInclude = { model: Rol, as: 'rol', attributes: ['codigo'] };
 const requireUser = async (id, options = {}) => {
-  const user = await Usuario.findByPk(id, { include: [roleInclude], ...options });
+  const queryOptions = { include: [roleInclude], ...options };
+  // Limitar FOR UPDATE al usuario evita que PostgreSQL intente bloquear el rol cargado mediante un LEFT JOIN.
+  if (options.lock && options.transaction) queryOptions.lock = { level: options.lock, of: Usuario };
+  const user = await Usuario.findByPk(id, queryOptions);
   if (!user) throw new AppError({ code: 'USUARIO_NO_ENCONTRADO', message: 'Usuario no encontrado.', status: 404 });
   return user;
 };
