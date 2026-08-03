@@ -1,0 +1,10 @@
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+
+# Dependencias y artefactos
+node_modules/
+coverage/
+uploads/
+*.log

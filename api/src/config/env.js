@@ -2,7 +2,7 @@ const path = require('node:path');
 const dotenv = require('dotenv');
 const Joi = require('joi');
 
-dotenv.config({ quiet: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const boolean = Joi.boolean().truthy('true').falsy('false');
 const schema = Joi.object({
