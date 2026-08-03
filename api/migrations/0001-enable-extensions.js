@@ -1,3 +1,4 @@
+/** Habilita extensiones requeridas antes de crear UUID y restricciones avanzadas de agenda. */
 'use strict';
 
 module.exports = {

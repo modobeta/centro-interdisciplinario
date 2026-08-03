@@ -1,3 +1,4 @@
+/** Compone Express y sus capas HTTP sin iniciar el servidor, lo que permite probar la aplicación aislada. */
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');

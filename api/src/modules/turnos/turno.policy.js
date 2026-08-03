@@ -1,3 +1,4 @@
+/** Decide alcance y campos visibles de turnos según rol y prestador propietario. */
 const GLOBAL_ROLES = new Set(['administrador', 'coordinacion', 'secretaria']);
 const isGlobal = (actor) => GLOBAL_ROLES.has(actor.rol);
 const owns = (actor, turno) => actor.id === turno.prestadorId;

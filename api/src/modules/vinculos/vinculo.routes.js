@@ -1,3 +1,4 @@
+/** Anida relaciones bajo el paciente para dejar claro cuál es el recurso propietario. */
 const express = require('express');
 const asyncHandler = require('../../shared/utils/asyncHandler');
 const authorize = require('../../shared/middlewares/authorize');

@@ -1,3 +1,4 @@
+/** Representa fallos esperados del negocio sin exponer errores internos de infraestructura. */
 class AppError extends Error {
   constructor({ code, message, status = 500, details = [], cause } = {}) {
     super(message || 'Ocurrió un error inesperado.', { cause });

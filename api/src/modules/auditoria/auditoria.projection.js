@@ -1,3 +1,4 @@
+/** Expone sólo campos aprobados para no filtrar metadata técnica o sensible. */
 const projectAuditEvent = (event) => ({
   id: event.id,
   usuario: event.usuario ? { id: event.usuario.id, nombre: event.usuario.nombre, apellido: event.usuario.apellido } : null,

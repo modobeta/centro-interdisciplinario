@@ -1,3 +1,4 @@
+/** Limita prestadores, filtros y motivos antes de modificar la vigencia de un vínculo. */
 const Joi = require('joi');
 
 const uuid = Joi.string().uuid({ version: 'uuidv4' });

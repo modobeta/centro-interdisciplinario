@@ -1,3 +1,4 @@
+/** Calcula tarjetas distintas por rol para no ampliar el acceso mediante métricas agregadas. */
 const { Op, QueryTypes } = require('sequelize');
 const { DateTime } = require('luxon');
 const env = require('../../config/env');

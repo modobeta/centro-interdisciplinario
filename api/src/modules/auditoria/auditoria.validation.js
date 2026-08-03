@@ -1,3 +1,4 @@
+/** Acota filtros de auditoría para mantener consultas predecibles y seguras. */
 const Joi = require('joi');
 
 module.exports = {

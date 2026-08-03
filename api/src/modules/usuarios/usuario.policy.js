@@ -1,3 +1,4 @@
+/** Protege cuentas de automodificación y controla el acceso a proyecciones administrativas. */
 const { ROLES } = require('../../shared/constants/roles');
 
 const assertNotSelf = (actor, userId, AppError) => {

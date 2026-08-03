@@ -1,3 +1,4 @@
+/** Crea borradores clínicos versionados para detectar ediciones concurrentes y finalización. */
 'use strict';
 
 module.exports = {

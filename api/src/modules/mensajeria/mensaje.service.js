@@ -1,3 +1,4 @@
+/** Envía y pagina mensajes sin registrar su contenido en logs o auditoría. */
 const { Op } = require('sequelize'); const AppError = require('../../shared/errors/AppError'); const { sequelize, Conversacion, ConversacionParticipante, Mensaje, Usuario } = require('../../shared/database/models'); const audit = require('../auditoria/auditoria.service'); const auth = require('../auth/auth.service'); const policy = require('./mensajeria.policy');
 const includeSender = { model: Usuario, as: 'remitente', attributes: ['id', 'nombre', 'apellido', 'fotoUrl'] };
 const project = (row) => ({ id: row.id, conversacionId: row.conversacionId, remitente: { id: row.remitente.id, nombreCompleto: `${row.remitente.nombre} ${row.remitente.apellido}`, fotoUrl: row.remitente.fotoUrl }, contenido: row.contenido, createdAt: row.createdAt });

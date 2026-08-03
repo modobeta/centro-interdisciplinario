@@ -1,3 +1,4 @@
+/** Traduce autenticación y cierre de sesión a cookies con atributos definidos centralmente. */
 const env = require('../../config/env');
 const service = require('./auth.service');
 

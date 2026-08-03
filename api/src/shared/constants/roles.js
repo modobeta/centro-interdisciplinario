@@ -1,3 +1,4 @@
+/** Define los roles reconocidos por el dominio y evita cadenas distintas para el mismo concepto. */
 const ROLES = Object.freeze({
   ADMIN: 'administrador',
   COORDINATION: 'coordinacion',

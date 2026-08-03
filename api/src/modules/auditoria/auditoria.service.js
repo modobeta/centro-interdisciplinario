@@ -1,3 +1,4 @@
+/** Registra eventos junto con el caso de uso y sanitiza metadata antes de persistirla. */
 const { Op } = require('sequelize');
 const logger = require('../../config/logger');
 const { AuditoriaEvento, Usuario } = require('../../shared/database/models');

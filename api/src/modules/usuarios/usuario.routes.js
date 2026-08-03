@@ -1,3 +1,4 @@
+/** Declara administración de cuentas, fotos y servicios con permisos específicos por acción. */
 const express = require('express');
 const asyncHandler = require('../../shared/utils/asyncHandler');
 const validate = require('../../shared/middlewares/validate');

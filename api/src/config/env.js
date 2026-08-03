@@ -1,3 +1,4 @@
+/** Valida la configuración al arrancar para evitar que la API opere con secretos o conexiones incompletas. */
 const path = require('node:path');
 const dotenv = require('dotenv');
 const Joi = require('joi');

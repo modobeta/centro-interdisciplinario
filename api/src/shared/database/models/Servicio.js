@@ -1,3 +1,4 @@
+/** Mapea prestaciones del centro y mantiene separadas su disponibilidad y publicación. */
 const { DataTypes, Model } = require('sequelize');
 
 class Servicio extends Model {}

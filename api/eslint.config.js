@@ -1,3 +1,4 @@
+/** Mantiene un criterio de calidad común para detectar errores antes de ejecutar la API. */
 const js = require('@eslint/js');
 const globals = require('globals');
 const jest = require('eslint-plugin-jest');

@@ -1,3 +1,4 @@
+/** Limita tamaños, lotes y cursores para mantener mensajes y consultas controlados. */
 const Joi = require('joi'); const uuid = Joi.string().uuid({ version: 'uuidv4' }); const id = { params: Joi.object({ id: uuid.required() }) };
 module.exports = {
   unread: { query: Joi.object({ limit: Joi.number().integer().min(1).max(20).default(5) }) },

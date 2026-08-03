@@ -1,3 +1,4 @@
+/** Compara rutas implementadas y documentadas para impedir endpoints huérfanos o invisibles. */
 const fs = require('node:fs');
 const path = require('node:path');
 const request = require('supertest');

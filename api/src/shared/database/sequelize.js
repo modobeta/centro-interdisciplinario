@@ -1,3 +1,4 @@
+/** Crea la conexión compartida sin sincronizar modelos, porque las migraciones gobiernan el esquema. */
 const { Sequelize } = require('sequelize');
 const env = require('../../config/env');
 

@@ -1,3 +1,4 @@
+/** Demuestra que PostgreSQL resuelve carreras que no pueden garantizarse sólo desde JavaScript. */
 const { createHash, randomBytes, randomUUID } = require('node:crypto');
 const enabled = process.env.RUN_DATABASE_TESTS === 'true';
 

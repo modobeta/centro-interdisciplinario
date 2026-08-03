@@ -1,3 +1,4 @@
+/** Adapta catálogo e imágenes de servicios sin mezclar transporte con almacenamiento. */
 const service = require('./servicio.service');
 module.exports = {
   list: async (req, res) => res.json(await service.list(req.actor, req.query)), get: async (req, res) => res.json({ data: await service.get(req.actor, req.params.id) }),

@@ -1,3 +1,4 @@
+/** Declara relaciones en un solo lugar para evitar asociaciones distintas entre módulos. */
 module.exports = (models) => {
   const { Rol, Usuario, Sesion, Servicio, UsuarioServicio, Paciente, Tutor, UsuarioPaciente, Consultorio, Turno, TipoInforme, Informe, Asunto, Conversacion, ConversacionParticipante, Mensaje, AuditoriaEvento } = models;
   Rol.hasMany(Usuario, { foreignKey: 'rolId', as: 'usuarios' }); Usuario.belongsTo(Rol, { foreignKey: 'rolId', as: 'rol' });

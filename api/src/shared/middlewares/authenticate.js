@@ -1,3 +1,4 @@
+/** Verifica token, sesión y usuario en cada solicitud privada para que una revocación sea inmediata. */
 const jwt = require('jsonwebtoken');
 const env = require('../../config/env');
 const AppError = require('../errors/AppError');

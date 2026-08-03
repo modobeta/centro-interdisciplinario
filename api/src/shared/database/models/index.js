@@ -1,3 +1,4 @@
+/** Registra todos los modelos sobre una única conexión antes de aplicar sus asociaciones. */
 const sequelize = require('../sequelize');
 const associate = require('../associations');
 

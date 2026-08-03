@@ -1,3 +1,4 @@
+/** Mapea cuentas internas y excluye el hash de acceso de las consultas normales. */
 const { DataTypes, Model } = require('sequelize');
 
 class Usuario extends Model {}

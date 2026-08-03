@@ -1,3 +1,4 @@
+/** Protege borradores clínicos con vínculos, autoría, versión esperada y auditoría transaccional. */
 const { Op } = require('sequelize');
 const AppError = require('../../shared/errors/AppError');
 const { sequelize, Informe, Paciente, TipoInforme, Usuario, UsuarioPaciente } = require('../../shared/database/models');

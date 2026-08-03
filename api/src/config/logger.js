@@ -1,3 +1,4 @@
+/** Configura logs estructurados y oculta campos sensibles antes de que lleguen a la salida. */
 const pino = require('pino');
 const env = require('./env');
 

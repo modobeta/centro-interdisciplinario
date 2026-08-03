@@ -1,3 +1,4 @@
+/** Comparte cálculos de paginación para que listados distintos devuelvan metadatos consistentes. */
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;

@@ -1,3 +1,4 @@
+/** Implementa almacenamiento local detrás de una interfaz reemplazable por un proveedor productivo. */
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');

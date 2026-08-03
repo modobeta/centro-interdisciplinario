@@ -1,3 +1,4 @@
+/** Cubre decisiones de acceso por recurso, donde conocer el rol por sí solo no es suficiente. */
 const turnPolicy = require('../../src/modules/turnos/turno.policy');
 const reportPolicy = require('../../src/modules/informes/informe.policy');
 

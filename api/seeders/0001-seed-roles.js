@@ -1,3 +1,4 @@
+/** Carga roles canónicos porque los permisos dependen de códigos estables y conocidos. */
 'use strict';
 
 const roles = [

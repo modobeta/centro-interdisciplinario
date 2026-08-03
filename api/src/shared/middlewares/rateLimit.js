@@ -1,3 +1,4 @@
+/** Aplica límites por operación usando identificadores que no guardan credenciales en memoria ni logs. */
 const { createHash } = require('node:crypto');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const env = require('../../config/env');

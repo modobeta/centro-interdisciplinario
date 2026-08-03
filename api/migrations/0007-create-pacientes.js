@@ -1,3 +1,4 @@
+/** Crea fichas de pacientes y permite DNI nulo sin perder unicidad cuando está informado. */
 'use strict';
 
 module.exports = {

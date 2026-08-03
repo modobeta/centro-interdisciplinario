@@ -1,11 +1,65 @@
 # Centro Educativo Interdisciplinario Terapéutico
 ## Contrato de API REST — MVP
 
-**Versión documental:** 4.2
-**Fecha:** 1 de agosto de 2026  
+**Versión documental:** 4.3
+**Fecha:** 3 de agosto de 2026
 **Base path:** `/api/v1`  
 **Formato:** JSON UTF-8  
 **Zona horaria de agenda:** `America/Argentina/Cordoba`
+
+---
+
+## Cómo utilizar este contrato
+
+Este documento está pensado como referencia compartida para frontend, backend, pruebas y revisión técnica. Su objetivo es que una persona pueda implementar o consumir un endpoint sin deducir reglas a partir del código fuente.
+
+Para incorporar un flujo nuevo o revisar uno existente, el orden recomendado es:
+
+1. consultar el índice de la sección 4 para confirmar método y ruta;
+2. leer la sección específica del recurso para conocer entradas y respuestas;
+3. revisar los errores particulares de la operación;
+4. consultar `matriz-permisos.md` cuando el resultado dependa del rol o del recurso concreto;
+5. consultar `modelo-datos.md` cuando la operación dependa de estados, relaciones o concurrencia.
+
+### Dirección de las solicitudes
+
+Las rutas documentadas son relativas al base path. Por ejemplo:
+
+```text
+POST /auth/login
+```
+
+representa:
+
+```text
+POST <origen-api>/api/v1/auth/login
+```
+
+Las excepciones son `/health`, `/ready` y `/uploads`, que se publican fuera de `/api/v1` y se describen expresamente en sus secciones.
+
+### Cómo leer parámetros y respuestas
+
+- **Path** identifica valores incluidos en la URL, como `:id`.
+- **Query** identifica filtros opcionales escritos después de `?`.
+- **Body** identifica el JSON o formulario enviado por el cliente.
+- **Respuesta** muestra el status HTTP y la representación que el cliente puede consumir.
+- **Errores** enumera fallos funcionales esperados; los errores transversales de autenticación, autorización y validación también pueden aplicar.
+
+Los ejemplos describen el contrato, no datos reales. Un campo ausente y un campo con valor `null` no son equivalentes salvo indicación expresa.
+
+### Autenticación resumida
+
+Las rutas privadas reciben el access token mediante:
+
+```http
+Authorization: Bearer <access-token>
+```
+
+El refresh token viaja únicamente en una cookie `HttpOnly`. Las operaciones que usan esa cookie validan además el encabezado `Origin`. Los permisos enviados al frontend sirven para construir la experiencia de usuario; la API vuelve a comprobar autorización y acceso al recurso en cada solicitud.
+
+### Estabilidad del contrato
+
+Los nombres públicos usan español y `camelCase`. Los nombres internos de tablas, columnas o constraints no forman parte de la API y no deben exponerse a clientes. Cualquier cambio incompatible requiere actualizar este documento, las validaciones, las pruebas y, cuando corresponda, la estrategia de versionado.
 
 ---
 

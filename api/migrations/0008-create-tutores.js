@@ -1,3 +1,4 @@
+/** Crea un tutor único por paciente porque ambos forman una sola ficha en el MVP. */
 'use strict';
 
 module.exports = {

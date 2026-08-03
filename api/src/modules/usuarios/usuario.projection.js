@@ -1,3 +1,4 @@
+/** Define vistas por audiencia para que DNI y datos administrativos no aparezcan por accidente. */
 const selector = (user) => ({ id: user.id, nombre: user.nombre, apellido: user.apellido, titulo: user.titulo, funcionPublica: user.funcionPublica, fotoUrl: user.fotoUrl });
 const directory = (user) => ({ ...selector(user), rol: user.rol?.codigo || user.rol, especialidad: user.especialidad });
 const administrative = (user) => ({

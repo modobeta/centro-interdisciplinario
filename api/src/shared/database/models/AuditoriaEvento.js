@@ -1,3 +1,4 @@
+/** Mapea eventos funcionales inmutables para consultar quién realizó acciones sensibles. */
 const { DataTypes, Model } = require('sequelize');
 
 class AuditoriaEvento extends Model {}

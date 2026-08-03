@@ -1,3 +1,4 @@
+/** Mapea el catálogo de temas de conversación sin duplicar sus reglas en mensajería. */
 const { DataTypes, Model } = require('sequelize');
 
 class Asunto extends Model {}

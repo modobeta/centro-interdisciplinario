@@ -1,3 +1,4 @@
+/** Gestiona credenciales, JWT y rotación de refresh sin persistir secretos reutilizables. */
 const { createHash, randomBytes, randomUUID, timingSafeEqual } = require('node:crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -28,6 +29,11 @@ const makeRefresh = (sessionId) => {
   return { token: `${sessionId}.${secret}`, hash: digest(secret) };
 };
 
+/**
+ * Separa un refresh opaco y devuelve sólo el identificador y hash necesarios para compararlo.
+ * @param {string} token Token recibido desde la cookie HttpOnly.
+ * @returns {{sessionId: string, hash: Buffer}|null} Datos verificables o null si el formato no es seguro.
+ */
 const parseRefresh = (token) => {
   if (typeof token !== 'string') return null;
   const [sessionId, secret, extra] = token.split('.');
@@ -37,6 +43,12 @@ const parseRefresh = (token) => {
 
 const sessionResponse = (user, sessionId) => ({ accessToken: signAccess(user, sessionId), user: userProjection(user), permissions: ROLE_PERMISSIONS[user.rol.codigo] || [] });
 
+/**
+ * Valida correo y DNI, crea una sesión revocable y entrega el par access/refresh.
+ * @param {{email: string, dni: string}} credentials Credenciales normalizadas por la validación HTTP.
+ * @param {import('express').Request} req Solicitud usada para contexto y auditoría.
+ * @returns {Promise<{data: object, refreshToken: string}>} Sesión pública y refresh que irá a la cookie.
+ */
 const login = async ({ email, dni }, req) => {
   const normalizedEmail = normalizeEmail(email);
   const user = await Usuario.scope('withPassword').findOne({ where: { email: normalizedEmail }, include: [{ model: Rol, as: 'rol', attributes: ['codigo'] }] });
@@ -55,6 +67,12 @@ const login = async ({ email, dni }, req) => {
   });
 };
 
+/**
+ * Rota el refresh bajo bloqueo para detectar reutilización y renovaciones concurrentes.
+ * @param {string} token Refresh actual recibido desde la cookie.
+ * @param {import('express').Request} req Solicitud usada para contexto y auditoría.
+ * @returns {Promise<{data: object, refreshToken: string}>} Nuevos tokens de la misma sesión.
+ */
 const refresh = async (token, req) => {
   const parsed = parseRefresh(token);
   if (!parsed) throw new AppError({ code: 'REFRESH_INVALIDO', message: 'La sesión no pudo renovarse.', status: 401 });

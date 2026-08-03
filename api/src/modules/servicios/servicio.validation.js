@@ -1,3 +1,4 @@
+/** Valida publicación y orden de servicios sin confundir esos campos con el estado activo. */
 const Joi = require('joi');
 const list = { query: Joi.object({ page: Joi.number().integer().min(1).default(1), limit: Joi.number().integer().min(1).max(100).default(20), search: Joi.string().trim().max(150), activo: Joi.boolean().default(true), sort: Joi.string().valid('nombre', 'createdAt', 'updatedAt', 'ordenPublico').default('nombre'), order: Joi.string().lowercase().valid('asc', 'desc').default('asc') }) };
 const body = Joi.object({ nombre: Joi.string().trim().max(150).required(), descripcion: Joi.string().trim().allow(null), visiblePublicamente: Joi.boolean().default(false), ordenPublico: Joi.number().integer().min(0).allow(null) });

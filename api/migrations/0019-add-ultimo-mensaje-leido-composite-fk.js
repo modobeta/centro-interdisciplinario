@@ -1,3 +1,4 @@
+/** Garantiza en PostgreSQL que el puntero leído pertenezca a la misma conversación. */
 'use strict';
 
 module.exports = {

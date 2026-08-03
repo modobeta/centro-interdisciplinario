@@ -1,3 +1,4 @@
+/** Crea sesiones revocables y guarda sólo hashes para reducir el impacto de una filtración. */
 'use strict';
 
 module.exports = {

@@ -1,3 +1,4 @@
+/** Registra intentos fallidos relevantes sin reemplazar el error original que recibirá el cliente. */
 const audit = require('../../modules/auditoria/auditoria.service');
 
 const rules = [

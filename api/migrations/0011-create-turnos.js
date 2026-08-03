@@ -1,3 +1,4 @@
+/** Crea la agenda y sus relaciones; las exclusiones concurrentes se agregan por separado. */
 'use strict';
 
 module.exports = {

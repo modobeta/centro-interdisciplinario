@@ -1,3 +1,4 @@
+/** Protege operaciones con cookies frente a solicitudes iniciadas desde orígenes no autorizados. */
 const env = require('../../config/env');
 const AppError = require('../errors/AppError');
 

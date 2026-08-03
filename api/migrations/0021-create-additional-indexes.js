@@ -1,3 +1,4 @@
+/** Agrega índices de consultas reales después de que todas las tablas y relaciones existen. */
 'use strict';
 
 module.exports = {

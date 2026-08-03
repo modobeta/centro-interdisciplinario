@@ -1,3 +1,4 @@
+/** Centraliza la política CORS para que todos los orígenes se validen contra la misma lista segura. */
 const env = require('./env');
 const AppError = require('../shared/errors/AppError');
 

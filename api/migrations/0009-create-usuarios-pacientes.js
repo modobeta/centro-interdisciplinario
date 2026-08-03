@@ -1,3 +1,4 @@
+/** Conserva el historial de vínculos entre prestadores y pacientes en lugar de borrarlo. */
 'use strict';
 
 module.exports = {

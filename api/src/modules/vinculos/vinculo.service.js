@@ -1,3 +1,4 @@
+/** Preserva relaciones históricas y bloquea cierres que invalidarían turnos futuros. */
 const { Op, UniqueConstraintError } = require('sequelize');
 const AppError = require('../../shared/errors/AppError');
 const { sequelize, Paciente, Rol, Turno, Usuario, UsuarioPaciente } = require('../../shared/database/models');

@@ -1,3 +1,4 @@
+/** Mantiene delgada la capa HTTP de informes para preservar reglas clínicas en el servicio. */
 const service = require('./informe.service');
 exports.list = async (req, res) => res.json(await service.list(req.actor, req.query));
 exports.get = async (req, res) => res.json({ data: await service.get(req.actor, req.params.id, req) });

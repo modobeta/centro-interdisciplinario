@@ -1,3 +1,4 @@
+/** Crea de forma controlada el primer administrador cuando todavía no existe una cuenta con acceso. */
 const Joi = require('joi');
 const bcrypt = require('bcrypt');
 const env = require('../src/config/env');

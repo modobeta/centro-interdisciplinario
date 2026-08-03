@@ -1,3 +1,4 @@
+/** Consulta sólo registros activos y visibles con orden estable para el sitio público. */
 const { Op } = require('sequelize'); const { sequelize, Usuario, Rol, Servicio } = require('../../shared/database/models'); const projection = require('./public.projection');
 const publicOrder = [sequelize.literal('"orden_publico" ASC NULLS LAST')];
 const team = async (limit) => { const rows = await Usuario.findAll({ where: { activo: true, visiblePublicamente: true }, include: [{ model: Rol, as: 'rol', where: { codigo: { [Op.in]: ['coordinacion', 'secretaria', 'profesional'] } }, attributes: [] }], attributes: ['id', 'nombre', 'apellido', 'titulo', 'especialidad', 'funcionPublica', 'bio', 'fotoUrl', 'ordenPublico'], order: [...publicOrder, ['apellido', 'ASC'], ['nombre', 'ASC']], ...(limit ? { limit } : {}) }); return rows.map(projection.team); };

@@ -1,3 +1,4 @@
+/** Crea mensajes inmutables y el orden compuesto necesario para paginación por cursor. */
 'use strict';
 
 module.exports = {

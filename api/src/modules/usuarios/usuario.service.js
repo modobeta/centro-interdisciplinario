@@ -1,3 +1,4 @@
+/** Coordina cuentas, roles y relaciones derivadas sin dejar cambios parciales entre módulos. */
 const bcrypt = require('bcrypt');
 const { Op, UniqueConstraintError } = require('sequelize');
 const env = require('../../config/env');

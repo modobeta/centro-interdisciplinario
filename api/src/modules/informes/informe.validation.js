@@ -1,3 +1,4 @@
+/** Exige versión esperada y cuerpos acotados antes de editar información clínica. */
 const Joi = require('joi');
 const uuid = Joi.string().uuid({ version: 'uuidv4' });
 const id = { params: Joi.object({ id: uuid.required() }) };

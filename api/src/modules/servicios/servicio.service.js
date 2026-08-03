@@ -1,3 +1,4 @@
+/** Protege catálogo, turnos futuros e imágenes mediante transacciones y compensación de archivos. */
 const AppError = require('../../shared/errors/AppError');
 const { sequelize, Servicio, Turno } = require('../../shared/database/models');
 const factory = require('../catalogos/catalogo.service-factory');

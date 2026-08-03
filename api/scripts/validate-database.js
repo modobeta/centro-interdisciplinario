@@ -1,3 +1,4 @@
+/** Comprueba que una base migrada conserve tablas, columnas, índices y restricciones críticas. */
 const { QueryTypes } = require('sequelize');
 const logger = require('../src/config/logger');
 const { sequelize } = require('../src/shared/database/models');

@@ -1,3 +1,4 @@
+/** Adapta el contrato de entorno de la aplicación al formato esperado por Sequelize CLI. */
 const env = require('./env');
 
 module.exports = {

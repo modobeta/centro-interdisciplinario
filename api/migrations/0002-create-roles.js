@@ -1,3 +1,4 @@
+/** Crea el catálogo estable de roles al que apuntan todas las cuentas internas. */
 'use strict';
 
 module.exports = {

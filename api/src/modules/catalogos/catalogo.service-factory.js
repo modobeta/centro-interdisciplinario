@@ -1,3 +1,4 @@
+/** Reúne reglas repetidas de catálogos para que cada módulo sólo declare sus diferencias reales. */
 const { Op, UniqueConstraintError } = require('sequelize');
 const AppError = require('../../shared/errors/AppError');
 const { sequelize } = require('../../shared/database/models');
@@ -6,6 +7,11 @@ const audit = require('../auditoria/auditoria.service');
 const auth = require('../auth/auth.service');
 const appointmentLocks = require('../turnos/turno-locks.service');
 
+/**
+ * Construye operaciones CRUD coherentes para catálogos con estado, auditoría y paginación.
+ * @param {object} config Modelo, nombres públicos, campos editables y protección opcional de turnos futuros.
+ * @returns {object} Servicio listo para listar, consultar, crear, editar y cambiar estado.
+ */
 module.exports = ({ model, resource, notFoundCode, fields, searchFields = ['nombre'], futureTurnModel, futureTurnField, duplicateCode = 'CATALOGO_NOMBRE_DUPLICADO' }) => {
   const project = (row) => Object.fromEntries(['id', ...fields, 'activo', 'createdAt', 'updatedAt'].map((field) => [field, row[field]]));
   const requireOne = async (id, options = {}) => { const row = await model.findByPk(id, options); if (!row) throw new AppError({ code: notFoundCode, message: 'Recurso no encontrado.', status: 404 }); return row; };

@@ -1,3 +1,4 @@
+/** Separa pruebas rápidas, de integración y de concurrencia para ejecutar sólo el costo necesario. */
 const common = {
   testEnvironment: 'node',
   clearMocks: true,

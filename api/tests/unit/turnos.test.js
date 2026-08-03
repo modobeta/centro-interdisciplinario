@@ -1,3 +1,4 @@
+/** Cubre intervalos y transiciones de agenda en la zona horaria definida por el centro. */
 const { DateTime } = require('luxon');
 const { interval } = require('../../src/modules/turnos/turno.service');
 

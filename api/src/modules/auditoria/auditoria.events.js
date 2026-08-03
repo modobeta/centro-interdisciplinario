@@ -1,3 +1,4 @@
+/** Limita las acciones auditables para evitar eventos arbitrarios o con nombres inconsistentes. */
 module.exports = Object.freeze([
   'LOGIN_EXITOSO', 'LOGIN_FALLIDO', 'SESION_RENOVADA', 'LOGOUT', 'LOGOUT_TODAS', 'USUARIO_CREADO', 'USUARIO_EDITADO', 'USUARIO_ACTIVADO',
   'USUARIO_DESACTIVADO', 'ACCESO_RESTABLECIDO', 'USUARIO_FOTO_ACTUALIZADA', 'USUARIO_FOTO_ELIMINADA', 'PACIENTE_CREADO', 'PACIENTE_EDITADO',

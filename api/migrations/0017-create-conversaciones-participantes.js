@@ -1,3 +1,4 @@
+/** Separa lectura y archivado por participante para que cada usuario tenga su propio estado. */
 'use strict';
 
 module.exports = {

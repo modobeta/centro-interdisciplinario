@@ -1,3 +1,4 @@
+/** Inicia la API, verifica sus dependencias y coordina un apagado que no corte operaciones en curso. */
 const app = require('./app');
 const fs = require('node:fs/promises');
 const { constants: fsConstants } = require('node:fs');

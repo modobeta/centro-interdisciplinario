@@ -1,3 +1,4 @@
+/** Normaliza credenciales antes de comparar o persistir para evitar duplicados por formato. */
 const normalizeEmail = (value) => value.trim().toLowerCase();
 const normalizeDni = (value) => value.replace(/\D/g, '');
 const trimNullable = (value) => {

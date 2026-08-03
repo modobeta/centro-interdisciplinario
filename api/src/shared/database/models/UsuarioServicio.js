@@ -1,3 +1,4 @@
+/** Mapea servicios habituales de un prestador como ayuda organizativa, no como autorización. */
 const { DataTypes, Model } = require('sequelize');
 
 class UsuarioServicio extends Model {}

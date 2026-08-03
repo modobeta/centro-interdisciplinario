@@ -1,3 +1,4 @@
+/** Crea el catálogo de prestaciones con estado operativo y publicación independientes. */
 'use strict';
 
 module.exports = {

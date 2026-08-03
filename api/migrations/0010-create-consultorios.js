@@ -1,3 +1,4 @@
+/** Crea espacios reservables para detectar conflictos físicos además de profesionales. */
 'use strict';
 
 module.exports = {

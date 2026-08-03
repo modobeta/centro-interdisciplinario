@@ -1,3 +1,4 @@
+/** Mapea el único tutor de cada paciente como parte inseparable de su ficha. */
 const { DataTypes, Model } = require('sequelize');
 
 class Tutor extends Model {}

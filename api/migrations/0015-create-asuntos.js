@@ -1,3 +1,4 @@
+/** Crea temas de conversación controlados para ordenar la mensajería institucional. */
 'use strict';
 
 module.exports = {

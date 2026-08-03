@@ -1,3 +1,4 @@
+/** Crea asignaciones habituales que ayudan a organizar prestadores sin limitar sus turnos. */
 'use strict';
 
 module.exports = {

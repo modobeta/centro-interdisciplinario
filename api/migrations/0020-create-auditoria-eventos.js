@@ -1,3 +1,4 @@
+/** Crea un registro funcional append-only para rastrear acciones sensibles sin guardar contenido. */
 'use strict';
 
 module.exports = {

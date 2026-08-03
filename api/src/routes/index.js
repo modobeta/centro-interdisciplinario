@@ -1,3 +1,4 @@
+/** Expone las comprobaciones operativas y agrupa las rutas versionadas de la API. */
 const express = require('express');
 const { sequelize } = require('../shared/database/models');
 

@@ -1,3 +1,4 @@
+/** Valida perfiles completos porque una actualización reemplaza el estado editable del usuario. */
 const Joi = require('joi');
 const { normalizeDni } = require('../../shared/utils/sanitize');
 

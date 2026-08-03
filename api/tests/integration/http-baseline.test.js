@@ -1,3 +1,4 @@
+/** Verifica el contrato HTTP transversal: seguridad, autenticación, errores y disponibilidad. */
 const request = require('supertest');
 const app = require('../../src/app');
 

@@ -1,3 +1,4 @@
+/** Verifica que entradas inválidas se detengan antes de alcanzar los servicios de negocio. */
 const validate = require('../../src/shared/middlewares/validate');
 const authValidation = require('../../src/modules/auth/auth.validation');
 const messagingValidation = require('../../src/modules/mensajeria/mensajeria.validation');

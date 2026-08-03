@@ -1,3 +1,4 @@
+/** Verifica que el catálogo de permisos y el middleware de autorización permanezcan alineados. */
 const authorize = require('../../src/shared/middlewares/authorize');
 const { PERMISSIONS, ROLE_PERMISSIONS } = require('../../src/shared/constants/permissions');
 

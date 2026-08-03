@@ -1,3 +1,4 @@
+/** Traduce acciones de agenda a transiciones explícitas en lugar de aceptar estados libres. */
 const service = require('./turno.service');
 exports.list = async (req, res) => { const result = await service.list(req.actor, req.query); res.json(result); };
 exports.availability = async (req, res) => res.json({ data: await service.availability(req.query) });

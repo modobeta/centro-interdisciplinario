@@ -1,3 +1,4 @@
+/** Coordina agenda, bloqueos y constraints para resolver correctamente solicitudes concurrentes. */
 const { Op } = require('sequelize');
 const { DateTime } = require('luxon');
 const AppError = require('../../shared/errors/AppError');

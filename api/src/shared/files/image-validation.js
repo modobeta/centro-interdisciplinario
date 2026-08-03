@@ -1,3 +1,4 @@
+/** Valida el contenido real de una imagen porque el MIME enviado por el cliente no es confiable. */
 const AppError = require('../errors/AppError');
 
 const detectImage = (buffer) => {

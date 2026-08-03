@@ -1,1 +1,2 @@
+/** Entrega colecciones públicas pequeñas con conteos simples y sin datos administrativos. */
 const service = require('./public.service'); module.exports = { team: async (req, res) => { const data = await service.team(req.query.limit); res.json({ data, meta: { count: data.length } }); }, services: async (req, res) => { const data = await service.services(req.query.limit); res.json({ data, meta: { count: data.length } }); } };

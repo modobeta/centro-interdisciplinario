@@ -1,3 +1,4 @@
+/** Mantiene paciente, tutor, vínculos y auditoría dentro de la misma unidad transaccional. */
 const { Op, UniqueConstraintError } = require('sequelize');
 const appointmentLocks = require('../turnos/turno-locks.service');
 const AppError = require('../../shared/errors/AppError'); const { sequelize, Paciente, Tutor, UsuarioPaciente, Turno } = require('../../shared/database/models'); const { getPagination, paginationMeta } = require('../../shared/utils/pagination'); const { normalizeDni } = require('../../shared/utils/sanitize'); const audit = require('../auditoria/auditoria.service'); const auth = require('../auth/auth.service'); const projection = require('./paciente.projection'); const policy = require('./paciente.policy');

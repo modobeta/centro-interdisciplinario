@@ -1,3 +1,4 @@
+/** Traduce errores conocidos al contrato HTTP y oculta detalles internos en fallos inesperados. */
 const multer = require('multer');
 const AppError = require('../errors/AppError');
 const auditFailure = require('./auditFailure');

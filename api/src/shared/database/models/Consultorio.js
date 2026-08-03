@@ -1,3 +1,4 @@
+/** Mapea espacios reservables para que la agenda pueda comprobar disponibilidad física. */
 const { DataTypes, Model } = require('sequelize');
 
 class Consultorio extends Model {}

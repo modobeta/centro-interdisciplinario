@@ -1,3 +1,4 @@
+/** Agrupa recursos privados detrás de una única autenticación de sesión vigente. */
 const express = require('express');
 const authenticate = require('../shared/middlewares/authenticate');
 

@@ -1,3 +1,4 @@
+/** Mapea roles persistidos para mantener permisos y usuarios sobre códigos estables. */
 const { DataTypes, Model } = require('sequelize');
 
 class Rol extends Model {}

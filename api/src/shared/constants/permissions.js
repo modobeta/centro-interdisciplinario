@@ -1,3 +1,4 @@
+/** Mantiene el catálogo de permisos separado de los roles para que la autorización sea explícita. */
 const PERMISSIONS = Object.freeze({
   SUMMARY_READ: 'summary.read', USERS_READ_DIRECTORY: 'users.readDirectory', USERS_MANAGE: 'users.manage', USERS_MANAGE_SERVICES: 'users.manageServices',
   PATIENTS_READ_ALL: 'patients.readAll', PATIENTS_READ_LINKED: 'patients.readLinked', PATIENTS_CREATE: 'patients.create', PATIENTS_UPDATE_ALL: 'patients.updateAll',

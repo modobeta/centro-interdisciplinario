@@ -1,1 +1,2 @@
+/** Protege el resumen porque combina conteos internos de distintos recursos. */
 const express = require('express'); const asyncHandler = require('../../shared/utils/asyncHandler'); const authorize = require('../../shared/middlewares/authorize'); const { PERMISSIONS } = require('../../shared/constants/permissions'); const controller = require('./resumen.controller'); const router = express.Router(); router.get('/', authorize(PERMISSIONS.SUMMARY_READ), asyncHandler(controller.get)); module.exports = router;

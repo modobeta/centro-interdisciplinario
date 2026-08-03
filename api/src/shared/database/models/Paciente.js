@@ -1,3 +1,4 @@
+/** Mapea la ficha central del paciente, preservada aun cuando deja de estar activa. */
 const { DataTypes, Model } = require('sequelize');
 
 class Paciente extends Model {}

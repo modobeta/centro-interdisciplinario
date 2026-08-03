@@ -1,3 +1,4 @@
+/** Publica la lectura auditada detrás del permiso administrativo específico. */
 const express = require('express');
 const asyncHandler = require('../../shared/utils/asyncHandler');
 const validate = require('../../shared/middlewares/validate');

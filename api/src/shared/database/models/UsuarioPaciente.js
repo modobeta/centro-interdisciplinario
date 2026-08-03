@@ -1,3 +1,4 @@
+/** Mapea vínculos históricos entre prestadores y pacientes sin borrar relaciones cerradas. */
 const { DataTypes, Model } = require('sequelize');
 
 class UsuarioPaciente extends Model {}

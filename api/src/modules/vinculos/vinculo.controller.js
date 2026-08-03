@@ -1,3 +1,4 @@
+/** Adapta altas y cierres de vínculos sin perder el motivo ni la historia. */
 const service = require('./vinculo.service');
 
 exports.list = async (req, res) => res.json({ data: await service.list(req.actor, req.params.pacienteId, req.query) });

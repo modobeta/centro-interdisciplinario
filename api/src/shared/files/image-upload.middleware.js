@@ -1,3 +1,4 @@
+/** Mantiene la carga de imágenes en memoria hasta validarlas y confirmar su persistencia. */
 const multer = require('multer');
 const env = require('../../config/env');
 const AppError = require('../errors/AppError');

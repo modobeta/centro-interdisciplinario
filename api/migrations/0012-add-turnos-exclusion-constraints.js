@@ -1,3 +1,4 @@
+/** Impide solapamientos aun con solicitudes concurrentes, donde una validación en JS no alcanza. */
 'use strict';
 
 module.exports = {

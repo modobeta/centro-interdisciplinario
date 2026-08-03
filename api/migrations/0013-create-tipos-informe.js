@@ -1,3 +1,4 @@
+/** Crea tipos administrables para evitar guardar nombres libres e inconsistentes en informes. */
 'use strict';
 
 module.exports = {

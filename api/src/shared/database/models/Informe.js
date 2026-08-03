@@ -1,3 +1,4 @@
+/** Mapea informes clínicos versionados para impedir que ediciones simultáneas se sobrescriban. */
 const { DataTypes, Model } = require('sequelize');
 
 class Informe extends Model {}

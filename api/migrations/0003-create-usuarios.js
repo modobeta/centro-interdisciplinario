@@ -1,3 +1,4 @@
+/** Crea cuentas, perfiles y unicidades normalizadas que sostienen autenticación y directorio. */
 'use strict';
 
 module.exports = {

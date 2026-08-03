@@ -1,3 +1,4 @@
+/** Carga un escenario ficticio y repetible para desarrollo, pero se omite fuera de ese entorno. */
 'use strict';
 
 const bcrypt = require('bcrypt');

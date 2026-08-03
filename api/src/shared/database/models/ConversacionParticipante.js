@@ -1,3 +1,4 @@
+/** Mapea acceso, lectura y archivado por participante para no compartir estado entre usuarios. */
 const { DataTypes, Model } = require('sequelize');
 
 class ConversacionParticipante extends Model {}

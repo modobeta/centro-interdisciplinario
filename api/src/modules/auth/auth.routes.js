@@ -1,3 +1,4 @@
+/** Aplica límites y protección de origen antes de operaciones sensibles de sesión. */
 const express = require('express');
 const asyncHandler = require('../../shared/utils/asyncHandler');
 const validate = require('../../shared/middlewares/validate');

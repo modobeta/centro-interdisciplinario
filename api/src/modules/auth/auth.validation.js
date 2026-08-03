@@ -1,3 +1,4 @@
+/** Restringe el login a credenciales normalizadas antes de realizar comparaciones criptográficas. */
 const Joi = require('joi');
 const { normalizeDni } = require('../../shared/utils/sanitize');
 

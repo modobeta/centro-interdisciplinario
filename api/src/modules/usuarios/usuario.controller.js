@@ -1,3 +1,4 @@
+/** Mantiene transporte, archivos y respuestas separados de las reglas de cuentas y roles. */
 const service = require('./usuario.service');
 const list = async (req, res) => res.json(await service.list(req.actor, req.query));
 const get = async (req, res) => res.json({ data: await service.get(req.actor, req.params.id) });

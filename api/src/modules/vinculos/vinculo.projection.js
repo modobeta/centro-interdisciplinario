@@ -1,3 +1,4 @@
+/** Expone vigencia y prestador sin revelar columnas internas de control. */
 const project = (row) => ({
   id: row.id,
   pacienteId: row.pacienteId,

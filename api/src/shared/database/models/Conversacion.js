@@ -1,3 +1,4 @@
+/** Mapea conversaciones y su actividad global, separada del estado personal de cada participante. */
 const { DataTypes, Model } = require('sequelize');
 
 class Conversacion extends Model {}

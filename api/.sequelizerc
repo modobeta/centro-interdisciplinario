@@ -1,3 +1,4 @@
+/** Indica a Sequelize CLI dónde están la configuración, migraciones, modelos y datos iniciales. */
 const path = require('node:path');
 
 module.exports = {

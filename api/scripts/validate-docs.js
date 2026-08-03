@@ -1,3 +1,4 @@
+/** Detecta divergencias básicas entre rutas, errores y documentos antes de publicar cambios. */
 const fs = require('node:fs');
 const path = require('node:path');
 

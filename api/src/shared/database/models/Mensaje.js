@@ -1,3 +1,4 @@
+/** Mapea mensajes inmutables cuyo contenido sólo puede consultar la conversación autorizada. */
 const { DataTypes, Model } = require('sequelize');
 
 class Mensaje extends Model {}

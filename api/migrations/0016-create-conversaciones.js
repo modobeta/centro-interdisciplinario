@@ -1,3 +1,4 @@
+/** Crea conversaciones con actividad global usada para ordenar bandejas de entrada. */
 'use strict';
 
 module.exports = {

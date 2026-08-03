@@ -1,3 +1,4 @@
+/** Mapea sesiones revocables y hashes de refresh para no persistir tokens reutilizables. */
 const { DataTypes, Model } = require('sequelize');
 
 class Sesion extends Model {}

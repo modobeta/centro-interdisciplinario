@@ -1,3 +1,4 @@
+/** Mapea reservas de agenda cuya integridad final de horarios protege PostgreSQL. */
 const { DataTypes, Model } = require('sequelize');
 
 class Turno extends Model {}

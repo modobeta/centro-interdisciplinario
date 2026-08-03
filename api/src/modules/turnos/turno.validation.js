@@ -1,3 +1,4 @@
+/** Normaliza intervalos y transiciones antes de consultar disponibilidad o bloquear recursos. */
 const Joi = require('joi');
 const uuid = Joi.string().uuid({ version: 'uuidv4' });
 const pagination = { page: Joi.number().integer().min(1).default(1), limit: Joi.number().integer().min(1).max(100).default(20) };

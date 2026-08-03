@@ -1,3 +1,4 @@
+/** Carga asuntos base para que las conversaciones usen categorías consistentes desde el inicio. */
 'use strict';
 
 const asuntos = [['informe', 'Informe'], ['acuerdo', 'Acuerdo'], ['administrativo', 'Administrativo'], ['consulta', 'Consulta'], ['otro', 'Otro']];

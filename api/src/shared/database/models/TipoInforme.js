@@ -1,3 +1,4 @@
+/** Mapea las clases de informe habilitadas por el centro como catálogo administrable. */
 const { DataTypes, Model } = require('sequelize');
 
 class TipoInforme extends Model {}

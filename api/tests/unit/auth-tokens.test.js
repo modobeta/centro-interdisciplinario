@@ -1,3 +1,4 @@
+/** Cubre el formato y las defensas criptográficas de tokens sin depender de PostgreSQL. */
 const auth = require('../../src/modules/auth/auth.service');
 
 describe('refresh tokens', () => {
