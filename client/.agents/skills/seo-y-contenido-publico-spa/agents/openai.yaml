@@ -1,0 +1,4 @@
+interface:
+  display_name: "SEO y Contenido Público SPA"
+  short_description: "Optimiza páginas institucionales dentro de la SPA"
+  default_prompt: "Usa $seo-y-contenido-publico-spa para crear una página institucional con SEO básico por ruta."

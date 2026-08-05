@@ -1,0 +1,4 @@
+interface:
+  display_name: "Axios API y Sesión"
+  short_description: "Gestiona API Axios y sesiones seguras"
+  default_prompt: "Usa $axios-api-y-sesion para integrar la API con login, logout y refresh seguro."

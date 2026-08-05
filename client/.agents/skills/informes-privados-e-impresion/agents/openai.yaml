@@ -1,0 +1,4 @@
+interface:
+  display_name: "Informes Privados e Impresión"
+  short_description: "Gestiona borradores, finalización e impresión segura"
+  default_prompt: "Usa $informes-privados-e-impresion para implementar un flujo privado de informes y su vista imprimible."

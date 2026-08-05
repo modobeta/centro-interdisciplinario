@@ -1,0 +1,4 @@
+interface:
+  display_name: "Formularios React Hook Form + Joi"
+  short_description: "Crea formularios y modales robustos y accesibles"
+  default_prompt: "Usa $formularios-react-hook-form-joi para crear un formulario responsive con validación Joi y manejo de errores."

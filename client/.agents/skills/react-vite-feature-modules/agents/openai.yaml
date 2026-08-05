@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Vite Feature Modules"
+  short_description: "Crea features React/Vite modulares y coherentes"
+  default_prompt: "Usa $react-vite-feature-modules para crear o ampliar una funcionalidad respetando la arquitectura del cliente."

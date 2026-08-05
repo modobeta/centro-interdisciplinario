@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sistema de Diseño con CSS Modules"
+  short_description: "Diseña componentes visuales consistentes y accesibles"
+  default_prompt: "Usa $sistema-diseno-css-modules para diseñar un componente visual coherente con los tokens del cliente."

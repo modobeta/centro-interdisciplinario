@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing Frontend con Vitest, MSW y Playwright"
+  short_description: "Prueba componentes, API y flujos frontend críticos"
+  default_prompt: "Usa $testing-frontend-vitest-msw-playwright para agregar pruebas proporcionales a una funcionalidad frontend."

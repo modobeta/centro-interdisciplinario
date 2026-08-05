@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mensajería Interna"
+  short_description: "Gestiona conversaciones, lectura y alertas internas"
+  default_prompt: "Usa $mensajeria-interna para implementar conversaciones y mensajes internos privados."

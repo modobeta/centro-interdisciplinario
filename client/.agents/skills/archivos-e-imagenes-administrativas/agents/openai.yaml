@@ -1,0 +1,4 @@
+interface:
+  display_name: "Archivos e Imágenes Administrativas"
+  short_description: "Gestiona fotos e imágenes administrativas seguras"
+  default_prompt: "Usa $archivos-e-imagenes-administrativas para gestionar una foto profesional o imagen de servicio."

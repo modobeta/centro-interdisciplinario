@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Router: Layouts y Guards"
+  short_description: "Crea rutas, layouts y guards accesibles en React"
+  default_prompt: "Usa $react-router-layouts-y-guards para crear rutas y layouts con controles de sesión, permisos y navegación accesible."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Integración API Pública y Media"
+  short_description: "Integra contenido público e imágenes con fallbacks"
+  default_prompt: "Usa $integracion-api-publica-y-media para implementar una sección pública conectada a la API y sus imágenes."

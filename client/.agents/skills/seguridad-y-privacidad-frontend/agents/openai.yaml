@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seguridad y Privacidad Frontend"
+  short_description: "Protege datos sensibles y permisos en el frontend"
+  default_prompt: "Usa $seguridad-y-privacidad-frontend para revisar un flujo frontend que maneja datos sensibles."

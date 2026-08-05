@@ -1,0 +1,4 @@
+interface:
+  display_name: "Responsive y Accesibilidad Web"
+  short_description: "Construye interfaces responsive y accesibles"
+  default_prompt: "Usa $responsive-y-accesibilidad-web para revisar y mejorar una interfaz en responsive y accesibilidad."

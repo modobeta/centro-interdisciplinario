@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agenda con FullCalendar"
+  short_description: "Implementa agenda Día y Semana sin reprogramación"
+  default_prompt: "Usa $agenda-fullcalendar para implementar o modificar la Agenda y sus flujos de turnos."
