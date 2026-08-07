@@ -1,0 +1,1 @@
+export const toCalendarEvent=(turno)=>({id:turno.id,title:`${turno.paciente?.nombreCompleto||'Paciente'} · ${turno.servicio?.nombre||'Servicio'}`,start:turno.inicioAt,end:turno.finAt,extendedProps:{turno},classNames:[`appointment-${turno.estado}`]})

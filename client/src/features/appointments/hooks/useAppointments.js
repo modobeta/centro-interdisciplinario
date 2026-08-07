@@ -1,0 +1,2 @@
+import { useCallback } from 'react';import useRemoteData from '../../../hooks/useRemoteData';import { listAppointments } from '../api/appointmentsApi'
+export default function useAppointments(range,prestadorId){const loader=useCallback(signal=>listAppointments({desde:range?.start,hasta:range?.end,prestadorId:prestadorId||undefined,limit:100},signal),[range,prestadorId]);return useRemoteData(loader,[loader],{enabled:Boolean(range?.start&&range?.end),initialData:[]})}

@@ -1,0 +1,1 @@
+import Joi from 'joi';const id=Joi.string().guid({version:['uuidv4','uuidv5']}).required();export const reportSchema=Joi.object({pacienteId:id,tipoInformeId:id,titulo:Joi.string().trim().max(200).required(),resumen:Joi.string().trim().required(),contenido:Joi.string().trim().required(),expectedVersion:Joi.number().integer().min(1).optional()})

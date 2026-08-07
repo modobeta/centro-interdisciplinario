@@ -1,0 +1,2 @@
+import { formatDate } from '../../../utils/formatters'
+export default function ReportDocument({report}){return <article className="report-document"><header><h1>{report.titulo||report.tipoInforme?.nombre||'Informe'}</h1><p>Paciente: {report.paciente?.nombreCompleto}</p><p>Fecha: {formatDate(report.fechaInforme||report.createdAt)}</p></header><div className="report-content">{String(report.contenido||'').split('\n').map((line,index)=><p key={index}>{line||'\u00a0'}</p>)}</div><footer><p>Profesional: {report.autor?.nombreCompleto}</p></footer></article>}

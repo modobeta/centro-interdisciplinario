@@ -2,7 +2,7 @@
 
 Aplicación web del MVP del Centro Educativo Interdisciplinario Terapéutico. El proyecto reúne en una única SPA el sitio institucional público, el acceso y el panel privado para administración, coordinación, secretaría y profesionales.
 
-> Estado actual: estructura inicial en desarrollo. El repositorio ya contiene el scaffold de React con Vite y el árbol previsto de módulos, pero la mayoría de las funcionalidades, dependencias y pruebas descritas en este documento todavía no están implementadas.
+> Estado actual: frontend MVP integrado en desarrollo. El sitio público, la sesión, el router con permisos y las superficies privadas principales ya están conectados al contrato REST. Los datos institucionales reales, la revisión legal y la infraestructura productiva continúan bloqueando la publicación, no el desarrollo local.
 
 ## Alcance del MVP
 
@@ -44,7 +44,7 @@ Los roles del MVP son `administrador`, `coordinacion`, `secretaria` y `profesion
 
 Quedan fuera del MVP el registro público, recuperación automática de contraseña, edición del perfil propio, pagos, facturación, videollamadas, adjuntos en mensajes, notificaciones externas, modo oscuro, aplicación móvil nativa y reprogramación de turnos mediante arrastre.
 
-## Estado actual y arquitectura objetivo
+## Estado actual y arquitectura
 
 ### Disponible actualmente
 
@@ -52,9 +52,10 @@ Quedan fuera del MVP el registro público, recuperación automática de contrase
 - Vite 8.
 - JavaScript con módulos ES.
 - ESLint.
-- Scaffold y estructura de carpetas del frontend.
-
-Los únicos scripts disponibles hoy son:
+- React Router, Axios, Redux Toolkit y sesión segura en memoria.
+- React Hook Form con Joi, FullCalendar, iconos y Helmet.
+- Vitest, Testing Library, MSW y Playwright.
+- CSS Modules, tokens globales, layouts responsive y estilos de impresión.
 
 | Comando | Función |
 |---|---|
@@ -62,10 +63,12 @@ Los únicos scripts disponibles hoy son:
 | `npm run build` | Genera el build de producción. |
 | `npm run lint` | Ejecuta ESLint sobre el cliente. |
 | `npm run preview` | Sirve localmente el build generado. |
+| `npm run format` | Verifica formato con Prettier. |
+| `npm run test:run` | Ejecuta Vitest una vez. |
+| `npm run test:coverage` | Ejecuta pruebas y genera cobertura V8. |
+| `npm run test:e2e` | Ejecuta los escenarios Playwright. |
 
-### Arquitectura objetivo del MVP
-
-La documentación funcional define las siguientes herramientas para etapas posteriores:
+### Tecnologías del MVP
 
 | Responsabilidad | Tecnología prevista |
 |---|---|
@@ -82,7 +85,7 @@ La documentación funcional define las siguientes herramientas para etapas poste
 | Pruebas E2E | Playwright |
 | SEO por ruta | React Helmet Async |
 
-Estas dependencias no deben considerarse instaladas hasta que aparezcan en `package.json` y sus scripts o configuraciones estén operativos.
+Las versiones instaladas y reproducibles se encuentran en `package-lock.json`.
 
 ## Arquitectura funcional
 
@@ -131,13 +134,14 @@ El panel utiliza el prefijo `/app`. `/app` debe redirigir a `/app/resumen`, y la
 
 La capa visual nunca reemplaza las validaciones ni las políticas de recurso del backend.
 
-## Variables de entorno previstas
+## Variables de entorno
 
-El contrato de entorno todavía no está implementado en `src/config/env.js`. La arquitectura privada define como base:
+`src/config/env.js` valida y normaliza estas variables públicas:
 
 ```dotenv
-VITE_API_URL=http://localhost:3000/api/v1
-VITE_FILES_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+VITE_FILES_BASE_URL=http://localhost:3000
+VITE_SITE_URL=http://localhost:5173
 VITE_APP_NAME=C.E.I.T. Mentes Luminosas
 ```
 
@@ -159,14 +163,17 @@ npm install
 npm run dev
 ```
 
-Validación disponible:
+Validación:
 
 ```bash
 npm run lint
+npm run test:run
+npm run test:coverage
 npm run build
+npm run test:e2e
 ```
 
-Los comandos de pruebas se agregarán cuando Vitest, Testing Library, MSW y Playwright estén instalados y configurados.
+Playwright necesita sus navegadores instalados (`npx playwright install chromium`) en la máquina o imagen de CI.
 
 ## Reglas de seguridad y privacidad
 

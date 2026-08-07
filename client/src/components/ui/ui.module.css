@@ -1,0 +1,28 @@
+.button { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid transparent; border-radius: var(--radius-sm); padding: 0.65rem 1rem; font-weight: 700; text-decoration: none; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); }
+.primary { background: var(--color-brand-600); color: white; }
+.primary:hover { background: var(--color-brand-700); color: white; }
+.secondary { background: var(--color-accent-500); color: white; }
+.outline { border-color: var(--color-brand-600); background: transparent; color: var(--color-brand-700); }
+.ghost { background: transparent; color: var(--color-brand-700); }
+.danger { background: var(--color-danger); color: white; }
+.button:disabled { opacity: 0.58; }
+.field { display: grid; gap: 0.35rem; }
+.field label, .label { font-weight: 700; }
+.input { width: 100%; min-height: 2.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: white; color: var(--color-text); padding: 0.65rem 0.75rem; }
+textarea.input { min-height: 7rem; resize: vertical; }
+.help { color: var(--color-text-muted); font-size: 0.88rem; }
+.error { color: var(--color-danger); font-size: 0.9rem; }
+.feedback { display: grid; justify-items: start; gap: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-5); background: var(--color-surface-soft); }
+.skeleton { min-height: 7rem; border-radius: var(--radius-md); background: linear-gradient(90deg, #e9efee, #f8faf9, #e9efee); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; }
+.badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.78rem; font-weight: 800; background: #e8eeee; color: var(--color-text); }
+.success { background: #dff2e8; color: #245b41; }
+.warning { background: #f7ead5; color: #754914; }
+.dangerTone { background: #f7dfde; color: #7e2d2b; }
+.pagination { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-top: var(--space-4); }
+.mobileList { display: grid; gap: var(--space-3); }
+.dataCard { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); background: white; }
+.dataRow { display: grid; grid-template-columns: minmax(6rem, 0.45fr) 1fr; gap: var(--space-2); padding-block: 0.25rem; }
+.image { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--color-surface-soft); }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+

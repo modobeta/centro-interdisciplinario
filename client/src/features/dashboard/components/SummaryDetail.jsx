@@ -1,0 +1,1 @@
+export default function SummaryDetail({ metric }) { return metric ? <section className="panel" aria-live="polite"><h2>{metric.label}</h2><p>El valor autorizado por la API es <strong>{metric.count}</strong>. Usá el enlace de la tarjeta para abrir el módulo correspondiente.</p></section> : null }

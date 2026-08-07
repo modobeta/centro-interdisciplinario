@@ -1,0 +1,10 @@
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import Button from '../../../components/ui/Button'
+import ResourceList from '../../../components/ui/ResourceList'
+import { PERMISSIONS } from '../../../config/permissions'
+import useDebounce from '../../../hooks/useDebounce'
+import usePermissions from '../../../hooks/usePermissions'
+import PatientFormModal from '../components/PatientFormModal'
+import usePatients from '../hooks/usePatients'
+export default function PatientsPage(){const [page,setPage]=useState(1),[search,setSearch]=useState(''),[open,setOpen]=useState(false);const debounced=useDebounce(search,350);const params=useMemo(()=>({page,limit:20,search:debounced||undefined}),[page,debounced]);const remote=usePatients(params);const {hasAny}=usePermissions();const canCreate=hasAny([PERMISSIONS.PATIENTS_CREATE]);const columns=[{label:'Paciente',render:p=>`${p.apellido}, ${p.nombre}`},{label:'DNI',key:'dni'},{label:'Estado',render:p=>p.activo?'Activo':'Inactivo'}];return <div className="private-page"><header className="page-header"><div><h1>Pacientes</h1><p>Registros disponibles según tu alcance.</p></div>{canCreate&&<Button onClick={()=>setOpen(true)}>Nuevo paciente</Button>}</header><div className="panel"><div className="toolbar"><label>Buscar<input value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="Nombre, apellido o DNI" /></label></div><ResourceList remote={remote} columns={columns} page={page} onPage={setPage} actions={p=><Link to={`/app/pacientes/${p.id}`}>Ver ficha</Link>} /></div><PatientFormModal open={open} onClose={()=>setOpen(false)} onSaved={remote.refresh}/></div>}

@@ -1,0 +1,31 @@
+export const PERMISSIONS = Object.freeze({
+  SUMMARY_READ: 'summary.read',
+  USERS_READ_DIRECTORY: 'users.readDirectory',
+  USERS_MANAGE: 'users.manage',
+  USERS_MANAGE_SERVICES: 'users.manageServices',
+  PATIENTS_READ_ALL: 'patients.readAll',
+  PATIENTS_READ_LINKED: 'patients.readLinked',
+  PATIENTS_CREATE: 'patients.create',
+  PATIENTS_UPDATE_ALL: 'patients.updateAll',
+  PATIENTS_UPDATE_LINKED: 'patients.updateLinked',
+  PATIENTS_MANAGE_STATE: 'patients.manageState',
+  PATIENTS_MANAGE_LINKS: 'patients.manageLinks',
+  APPOINTMENTS_READ_ALL: 'appointments.readAll',
+  APPOINTMENTS_MANAGE_ALL: 'appointments.manageAll',
+  APPOINTMENTS_MANAGE_OWN: 'appointments.manageOwn',
+  APPOINTMENTS_READ_AVAILABILITY: 'appointments.readAvailability',
+  REPORTS_READ_ALL: 'reports.readAll',
+  REPORTS_READ_LINKED: 'reports.readLinked',
+  REPORTS_CREATE_ANY: 'reports.createAny',
+  REPORTS_CREATE_LINKED: 'reports.createLinked',
+  REPORTS_MANAGE_OWN: 'reports.manageOwnDraft',
+  CONVERSATIONS_MANAGE_OWN: 'conversations.manageOwn',
+  SERVICES_READ: 'services.read',
+  SERVICES_MANAGE: 'services.manage',
+  CATALOGS_READ: 'catalogs.read',
+  CATALOGS_MANAGE: 'catalogs.manage',
+  AUDIT_READ: 'audit.read',
+})
+
+export const hasAnyPermission = (permissions = [], required = []) =>
+  required.length === 0 || required.some((permission) => permissions.includes(permission))

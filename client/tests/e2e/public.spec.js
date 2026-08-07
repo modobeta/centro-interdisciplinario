@@ -1,0 +1,2 @@
+import { expect,test } from '@playwright/test'
+test('navegación pública y 404',async({page})=>{await page.route('**/public/servicios**',route=>route.fulfill({json:{data:[]}}));await page.route('**/public/equipo**',route=>route.fulfill({json:{data:[]}}));await page.goto('/');await expect(page.getByRole('heading',{level:1})).toBeVisible();await page.getByRole('link',{name:'Nosotros'}).first().click();await expect(page).toHaveURL(/\/nosotros$/);await page.goto('/ruta-inexistente');await expect(page.getByRole('heading',{name:'Página no encontrada'})).toBeVisible()})

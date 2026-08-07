@@ -1,0 +1,2 @@
+import { render,screen } from '@testing-library/react';import { describe,expect,it } from 'vitest';import App from '../src/App';import AppProviders from '../src/app/providers'
+describe('sitio público',()=>{it('renderiza el inicio aunque las APIs públicas estén vacías',async()=>{window.history.pushState({},'', '/');render(<AppProviders><App/></AppProviders>);expect(await screen.findByRole('heading',{level:1})).toHaveTextContent(/cada proceso/i);expect(screen.getByRole('navigation',{name:/principal/i})).toBeInTheDocument()})})

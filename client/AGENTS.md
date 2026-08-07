@@ -10,9 +10,8 @@ La especificación funcional y técnica versionada vive en `client/doc/`. Consul
 
 ## Estado del proyecto
 
-- El repositorio se encuentra en una etapa inicial: gran parte del árbol está creado, pero muchos archivos están vacíos.
-- Hoy están instalados React, Vite y ESLint. No asumir que una dependencia prevista ya está disponible; verificar `package.json` antes de importarla.
-- React Router, Axios, Redux Toolkit, React Hook Form, FullCalendar, React Icons, React Helmet Async, Vitest, Testing Library, MSW y Playwright forman parte de la arquitectura objetivo y deben incorporarse solo en la etapa que los necesite.
+- El frontend MVP está integrado en desarrollo: sitio público, sesión, rutas protegidas y superficies privadas principales consumen la API existente.
+- Están instalados React Router, Axios, Redux Toolkit, React Hook Form, Joi, FullCalendar, React Icons, React Helmet Async, Vitest, Testing Library, MSW y Playwright. Verificar siempre `package.json` antes de incorporar nuevas dependencias.
 - No presentar funcionalidades planificadas como terminadas ni inventar resultados de pruebas.
 
 ## Convenciones de implementación

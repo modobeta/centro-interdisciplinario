@@ -1,0 +1,9 @@
+.public-page { background: var(--color-surface); }
+.public-section { padding-block: var(--space-7); }
+.public-section--soft { background: var(--color-surface-soft); }
+.public-section--warm { background: var(--color-surface-warm); }
+.section-heading { max-width: 46rem; margin-bottom: var(--space-6); }
+.section-heading p { color: var(--color-text-muted); }
+.card-grid { display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+.prose { max-width: 70ch; }
+.prose p { margin-bottom: var(--space-4); }
